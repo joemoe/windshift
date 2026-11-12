@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Windshift – live wind, eastern Lake Constance</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b1620">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Windshift">
+<meta name="format-detection" content="telephone=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -16,10 +26,13 @@
     --side:400px;
   }
   *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  button,select,.chip,.cs{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:13px}
   body{overflow:hidden}
   .app{height:100vh;height:100dvh;display:grid;grid-template-rows:auto 1fr;padding-top:env(safe-area-inset-top)}
-  header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header{display:flex;align-items:center;gap:8px;padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header .logo{width:22px;height:25px;flex:none;margin-right:-2px}
   header h1{font-size:16px;margin:0;font-weight:700;white-space:nowrap}
   header .sub{color:var(--mute);font-size:12px;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
   .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -31,7 +44,8 @@
   main{display:grid;grid-template-columns:1fr var(--side);min-height:0}
   .mapwrap{position:relative;min-height:0}
   #map{position:absolute;inset:0;background:var(--water)}
-  aside{overflow-y:auto;border-left:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:8px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  aside{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-left:1px solid var(--line);padding:8px max(8px,env(safe-area-inset-right)) 8px 8px;display:flex;flex-direction:column;gap:8px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  @media (display-mode: standalone){ header{padding-top:4px} }
   @media (orientation:portrait), (max-width:820px){
     body{overflow:auto}
     .app{height:auto;min-height:100dvh}
@@ -39,6 +53,10 @@
     .mapwrap{height:58vh;height:58svh}
     aside{border-left:0;overflow:visible}
     header .sub{flex-basis:100%;order:9}
+    aside{padding-left:max(8px,env(safe-area-inset-left))}
+    .sys input[type=range]{height:28px}
+    .seg button,.btn{padding:7px 10px}
+    .ib{width:32px;height:32px}
   }
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
   h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute);margin:0 0 6px;font-weight:600;display:flex;align-items:center;gap:8px}
@@ -121,6 +139,17 @@
 <body>
 <div class="app">
   <header>
+    <svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="6 9 42 48">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#4fc3a1"/><stop offset="1" stop-color="#9fb4ff"/>
+    </linearGradient>
+  </defs>
+  <path d="M9 33 H35 A10.5 10.5 0 1 0 24.5 22.5" fill="none" stroke="url(#lg)" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M24.5 30 L19 20.5 H30 Z" fill="#9fb4ff" stroke="#9fb4ff" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M9 45 H44" stroke="#7fb3c8" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+  <path d="M15 54 H33" stroke="#7fb3c8" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+</svg>
     <h1>Windshift</h1>
     <div class="sub" id="updated"></div>
     <div class="seg" id="units"><button data-u="kn">kn</button><button data-u="kmh">km/h</button><button data-u="ms">m/s</button></div>
