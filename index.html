@@ -312,7 +312,7 @@ function windRebuild(){
   let inside=0, probe=400;
   for(let k=0;k<probe;k++) if(W.ctx.isPointInPath(W.path, Math.random()*W.cv.width, Math.random()*W.cv.height)) inside++;
   const lakePx=(inside/probe)*size.x*size.y;
-  const n=Math.max(150, Math.min(2600, Math.round(lakePx/95)));
+  const n=Math.max(150, Math.min(2600, Math.round(lakePx/70)));
   W.parts=[]; for(let k=0;k<n;k++) W.parts.push(spawn({}, true));
   W.ctx.clearRect(0,0,W.cv.width,W.cv.height);
 }
@@ -322,7 +322,7 @@ function spawn(p, randomAge){
     if(W.ctx.isPointInPath(W.path,x,y)){ p.x=x; p.y=y; break; }
   }
   if(p.x==null){ p.x=Math.random()*W.cv.width; p.y=Math.random()*W.cv.height; }
-  p.max=50+Math.random()*90; p.age=randomAge?Math.random()*p.max:0; p.px=p.x; p.py=p.y;
+  p.max=35+Math.random()*70; p.age=randomAge?Math.random()*p.max:0; p.px=p.x; p.py=p.y;
   return p;
 }
 function sample(x,y){
@@ -335,7 +335,7 @@ function windFrame(){
   if(!W.moving){
     const c=W.ctx, t=(W.t+=1/60), d=W.dpr;
     // fade previous frame -> trails
-    c.globalCompositeOperation='destination-in'; c.fillStyle='rgba(0,0,0,0.92)'; c.fillRect(0,0,W.cv.width,W.cv.height);
+    c.globalCompositeOperation='destination-in'; c.fillStyle='rgba(0,0,0,0.86)'; c.fillRect(0,0,W.cv.width,W.cv.height);
     c.globalCompositeOperation='source-over';
     c.save(); c.clip(W.path);
     const bins=[[],[],[],[],[]];
@@ -346,16 +346,16 @@ function windFrame(){
       const gx=p.x/d, gy=p.y/d;
       const g=0.5+0.5*Math.sin(gx*0.011 - f.ux*t*2.2 + Math.sin(gy*0.007+t*0.3)*1.7) * Math.sin(gy*0.013 + f.uy*t*2.2 + 0.8);
       const sp=f.mean + (f.gust-f.mean)*g*g;
-      const wob=Math.sin(gx*0.004+gy*0.005+t*0.6)*0.14;
+      const wob=(Math.sin(gx*0.009+gy*0.006+t*0.5)*0.22 + Math.sin(gx*0.021-gy*0.017-t*0.9)*0.12);
       const cs=Math.cos(wob), sn=Math.sin(wob);
       const ux=f.ux*cs - f.uy*sn, uy=f.ux*sn + f.uy*cs;
-      const k=(0.55+sp*0.42)*d;            // time-lapse: px per frame
+      const k=(0.3+sp*0.24)*d;            // time-lapse: px per frame
       p.px=p.x; p.py=p.y; p.x+=ux*k; p.y-=uy*k;
       if(!c.isPointInPath(W.path,p.x,p.y)){ spawn(p,false); continue; }
       bins[pBin(sp)].push(p);
     }
-    c.lineWidth=1.6*d; c.lineCap='round';
-    bins.forEach((b,i)=>{ if(!b.length) return; c.strokeStyle=PCOL[i]; c.globalAlpha=0.85; c.beginPath();
+    c.lineWidth=1.25*d; c.lineCap='round';
+    bins.forEach((b,i)=>{ if(!b.length) return; c.strokeStyle=PCOL[i]; c.globalAlpha=0.75; c.beginPath();
       for(const p of b){ c.moveTo(p.px,p.py); c.lineTo(p.x,p.y); } c.stroke(); });
     c.globalAlpha=1; c.restore();
   }
