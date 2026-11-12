@@ -457,7 +457,7 @@ const SYSGEO = {
   thermal: {type:'ring', c:[-3,0.5], r:6, chip:[-3,7.2]},
 };
 function jetFan(g, s){
-  const sgn = s<0 ? -1 : 1, to = g.from+180, L = g.reach*1.8, pts=[];
+  const to = g.from+180, L = g.reach*1.4, pts=[];
   const [ox,oy]=g.o, side=(a,d)=>[ox+Math.sin(a*DEG)*d, oy+Math.cos(a*DEG)*d];
   pts.push(side(to-90, g.width*0.6)); for(let a=-g.spread-12;a<=g.spread+12;a+=6) pts.push(side(to+a, L)); pts.push(side(to+90, g.width*0.6));
   return pts.map(([x,y])=>xyLL(x,y));
