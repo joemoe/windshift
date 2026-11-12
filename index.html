@@ -61,6 +61,8 @@
   .cs .nm i{font-style:normal;color:var(--c)}
   .cs .val{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right}
   .cs.old{opacity:.45}
+  .catchc summary{list-style:none;cursor:pointer} .catchc summary::-webkit-details-marker{display:none}
+  .catchc summary h2{margin:0} .catchc summary h2::before{content:'▸';color:var(--mute)} .catchc[open] summary h2::before{content:'▾'}
   .st.stale{opacity:.5}
   .err{color:var(--b4);font-size:11px}
   .mini{width:28px;height:28px}
@@ -131,7 +133,7 @@
     <aside>
       <div class="card"><div class="summary" id="summary"></div></div>
       <div class="card"><h2><span data-i18n="stations"></span><span class="r" data-i18n="last3h"></span></h2><div id="list"></div></div>
-      <div class="card"><h2><span data-i18n="catchment"></span><span class="r" data-i18n="catchHint"></span></h2><div id="catch"></div></div>
+      <details class="card catchc"><summary><h2><span data-i18n="catchment"></span><span class="r" data-i18n="catchHint"></span></h2></summary><div id="catch" style="margin-top:6px"></div></details>
       <div class="card">
         <h2 data-i18n="systems"></h2>
         <div class="row">
