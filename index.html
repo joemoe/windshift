@@ -40,6 +40,24 @@
   .wm .lbl b{font-size:12px;display:block}
   .wm .lbl span{font-family:'JetBrains Mono',monospace;font-size:12px}
   .maplabel{font-size:11px;fill:var(--mute)}
+  .sim{border-top:1px solid var(--line);margin-top:6px;padding:10px 8px 4px}
+  .simhead,.boatbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .boatbar{margin-top:10px}
+  select.btn{appearance:auto;max-width:100%}
+  .note{font-size:12px;color:var(--mute);margin-top:6px;line-height:1.45}
+  .note b{color:var(--ink)} .note .ok{color:var(--b1)}
+  .why{margin:10px 0 4px;font-size:13px;line-height:1.5}
+  .why summary{cursor:pointer;font-weight:600;color:var(--b1)}
+  .why p{margin:8px 0;color:var(--ink)} .why .muted{color:var(--mute);font-size:12px}
+  .sliders{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  @media (max-width:560px){.sliders{grid-template-columns:1fr}}
+  .sl{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;opacity:.75}
+  .sl.active{opacity:1;border-color:var(--b0)}
+  .slh{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+  .slv{font-family:'JetBrains Mono',monospace;color:var(--mute);white-space:nowrap}
+  .sl input{width:100%;accent-color:var(--b1);margin:6px 0 2px}
+  .sl .ends{display:flex;justify-content:space-between;font-size:10px;color:var(--mute)}
+  .sl p{font-size:11px;color:var(--mute);margin:4px 0 0;line-height:1.4}
   .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mute);padding:4px 8px 6px}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
   .list{display:flex;flex-direction:column;gap:12px}
@@ -86,6 +104,31 @@
     <div class="card map">
       <div id="map" role="img" aria-label="Map of eastern Lake Constance with wind arrows"></div>
       <div class="legend" id="legend"></div>
+      <div class="sim">
+        <div class="simhead">
+          <div class="seg" id="mode"><button data-m="live" class="on">Live (fitted)</button><button data-m="sim">Simulator</button></div>
+          <select id="preset" class="btn" aria-label="Scenario"></select>
+        </div>
+        <div class="note" id="modeNote"></div>
+        <div class="boatbar">
+          <button class="btn" id="boatBtn">⛵ Drop a boat</button>
+          <select id="twa" class="btn" aria-label="Angle to the wind">
+            <option value="45">45° close-hauled</option><option value="60">60° close reach</option>
+            <option value="90" selected>90° beam reach</option><option value="120">120° broad reach</option><option value="160">160° running</option>
+          </select>
+          <select id="tack" class="btn" aria-label="Tack"><option value="stbd">starboard tack</option><option value="port">port tack</option></select>
+          <button class="btn" id="boatClear">Clear</button>
+        </div>
+        <div class="note" id="boatInfo"></div>
+        <details class="why">
+          <summary>Why did my boat go round in a full circle without touching the sails?</summary>
+          <p>Trimmed sails only "know" the angle between the boat and the wind. If you never touch them and keep the boat sailing nicely, you hold that angle – so your heading follows the wind. If the wind direction itself changes along your track, you turn with it.</p>
+          <p>On calm nights and mornings the shores cool much faster than the lake. Cold air drains off the Pfänder, out of the Bregenzerwald and the Rhine Valley, down from the Appenzell hills and off the Bavarian/Württemberg shore – from every side towards the warmer open water, where it converges. Near such a convergence the wind blows from the north on the north side, from the south on the south side, from the east on the east side. Holding the same angle to that wind (e.g. a beam reach) carries you tangentially around the convergence zone – one full turn of the compass and roughly back to where you started, with the sails never touched.</p>
+          <p>Try it: load <b>“Calm night – the circle”</b>, then drop a boat 1–3 km from the calm spot in the middle of the eastern lake. Föhn, Pfänderwind or a westerly push that calm spot around or wipe it out.</p>
+          <p class="muted">Model, not measurement: eight conceptual wind systems with assumed shapes and strengths, based on the Pfänderwind climatology (Gohm et al., Meteorol. Z. 2015), MeteoSwiss on Rhine Valley föhn reaching Rorschach–Altenrhein, DWD on the land–lake breeze at Friedrichshafen and the ZAMG/vol.at report of a "mini convergence" with NE wind at Friedrichshafen and S–SE at Bregenz/Rohrspitz.</p>
+        </details>
+        <div class="sliders" id="sliders"></div>
+      </div>
     </div>
     <div class="list" id="list"></div>
   </div>
@@ -93,7 +136,7 @@
   <footer>
     Data sources: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data),
     <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>,
-    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. The animated flow is a model: wind interpolated between stations (inverse-distance weighting), gusts simulated between mean and peak, motion sped up for visibility. Refreshes automatically every 5 minutes.<br>
+    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. The animated flow is a model: eight conceptual local wind systems (westerly, Bise, Rhine Valley föhn/valley breeze, Rhine outflow, Bregenzerwald, Pfänder downslope wind, Appenzell hills, land/lake breeze). In live mode their strengths are fitted to the four stations (bounded least squares) and remaining differences are blended in near each station; gusts are simulated between mean and peak; motion is sped up. Refreshes automatically every 5 minutes.<br>
     Prototype – not an official storm warning. Always follow the storm warning lights around the lake.
   </footer>
 </div>
@@ -164,6 +207,7 @@ async function loadAll(){
     try{ localStorage.setItem('wind-lindau', JSON.stringify(hist)); }catch(e){}
     DATA.lindau = hist;
   } else ERR.lindau=dwd.reason.message;
+  refit();
   document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + ' · 10-minute values, last 3 hours';
   render();
 }
@@ -200,7 +244,7 @@ function renderMap(){
     else MARKERS[st.id] = L.marker([st.lat, st.lon], {icon, keyboard:false}).addTo(MAP)
       .bindTooltip(`${st.src}${last?' · '+hhmm(last.t):''}`, {direction:'bottom', offset:[0,8]});
   }
-  document.getElementById('legend').innerHTML = [['var(--b0)','< 3 Bft'],['var(--b1)','3 Bft'],['var(--b2)','4 Bft'],['var(--b3)','5–6 Bft'],['var(--b4)','≥ 7 Bft']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + '<span style="margin-left:auto">Arrow points where the wind is blowing to · flow: interpolated, sped up</span>';
+  document.getElementById('legend').innerHTML = [['var(--b0)','< 3 Bft'],['var(--b1)','3 Bft'],['var(--b2)','4 Bft'],['var(--b3)','5–6 Bft'],['var(--b4)','≥ 7 Bft']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + '<span style="margin-left:auto">Arrow points where the wind is blowing to · flow: wind-system model, sped up</span>';
 }
 function spark(rows){
   if(rows.length<2) return `<svg class="spark" viewBox="0 0 300 44"><text x="0" y="28" class="maplabel">Building history …</text></svg>`;
@@ -262,21 +306,226 @@ const pBin = ms => ms<3.4?0 : ms<5.5?1 : ms<8?2 : ms<12.9?3 : 4;
 const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const W = { on: !REDUCED, cv:null, ctx:null, dpr:1, path:null, grid:null, gw:0, gh:0, step:12, parts:[], raf:null, t:0, moving:false, ready:false };
 
-function windField(lat, lon){
-  // IDW of u/v (towards-vector), mean and gust speed
-  let su=0, sv=0, sf=0, sx=0, sw=0;
-  for(const st of STATIONS){
-    const r=(DATA[st.id]||[]).slice(-1)[0]; if(!r||r.dd==null||r.ff==null) continue;
-    const dy=(lat-st.lat)*111.2, dx=(lon-st.lon)*111.2*Math.cos(lat*Math.PI/180);
-    const w=1/(dx*dx+dy*dy+0.4);
-    const a=(r.dd+180)*Math.PI/180;
-    su+=w*Math.sin(a)*r.ff; sv+=w*Math.cos(a)*r.ff; sf+=w*r.ff; sx+=w*(r.fx??r.ff); sw+=w;
-  }
-  if(!sw) return null;
-  const u=su/sw, v=sv/sw, mean=sf/sw, gust=Math.max(sx/sw, mean);
-  const m=Math.hypot(u,v)||1e-6;
-  return {ux:u/m, uy:v/m, mean, gust};   // unit direction + speeds (m/s)
+// ---------- Local wind-system model (strong assumptions, see SYSTEMS[].why) ----------
+// Local km grid centred on the eastern lake: x east, y north.
+const ORIGIN = {lon:9.65, lat:47.53};
+const DEG = Math.PI/180;
+const toXY = (lat,lon) => [(lon-ORIGIN.lon)*75.1, (lat-ORIGIN.lat)*111.2];
+const vecTo = (toDeg, s) => [Math.sin(toDeg*DEG)*s, Math.cos(toDeg*DEG)*s];
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+// A jet leaving a valley/gap: origin (ox,oy), blowing FROM fromDeg, widening and fanning out downstream.
+function jet(x,y, ox,oy, fromDeg, width, reach, spread){
+  const to = fromDeg+180, ax = Math.sin(to*DEG), ay = Math.cos(to*DEG);
+  const dx = x-ox, dy = y-oy, s = dx*ax + dy*ay, c = dx*ay - dy*ax;
+  const along = s < 0 ? Math.exp(-(s*s)/1.2) : Math.exp(-s/reach);
+  const w = width*(1 + Math.max(0,s)/reach);
+  const k = along*Math.exp(-(c*c)/(2*w*w));
+  return vecTo(to + spread*Math.tanh(c/(2*w)), k);
 }
+// Downslope wind falling off a ridge line p1->p2, decaying with distance on the downwind side.
+function slope(x,y, p1, p2, fromDeg, decay){
+  const to = fromDeg+180, tx = Math.sin(to*DEG), ty = Math.cos(to*DEG);
+  const ex = p2[0]-p1[0], ey = p2[1]-p1[1], L2 = ex*ex+ey*ey;
+  const tr = ((x-p1[0])*ex + (y-p1[1])*ey)/L2, t = clamp(tr, 0, 1);
+  const cx = p1[0]+t*ex, cy = p1[1]+t*ey;
+  // signed distance downwind of the ridge line (measured along the wind direction)
+  const down = (x-cx)*tx + (y-cy)*ty;
+  const over = Math.max(0, Math.abs(tr-0.5)-0.5)*Math.sqrt(L2);   // km beyond the ridge ends
+  const endFade = Math.exp(-(over*over)/2.5);
+  const k = (down <= 0 ? 1 : Math.exp(-down/decay)) * endFade;
+  return vecTo(to, k);
+}
+const SYSTEMS = [
+  { id:'west', name:'Westerly (large-scale, W/SW)', min:0, max:1, vmax:12, gust:1.45,
+    why:'Synoptic westerly is channelled along the lake axis and arrives from WNW. The Pfänder/Alps wall at the eastern end slows it and splits it: the southern part turns SE into the Rhine Valley, the northern part turns NE along the Lindau shore.',
+    f:(x,y)=>{ const k = clamp((x+2)/9,0,1); const to = 105 + 50*k*Math.tanh(-(y+0.5)/2);
+               const slow = 1 - 0.6/(1+Math.exp(-(x-4.5)/1.5)); return vecTo(to, slow); } },
+  { id:'north', name:'Northerly / Bise (large-scale, NE)', min:0, max:1, vmax:12, gust:1.25,
+    why:'Bise blows from the NE down the lake. Near the south shore it bends towards the Rhine Valley (from N). The Bregenz bay lies partly in the lee of the Pfänder and stays weaker.',
+    f:(x,y)=>{ const lee = 1 - 0.75*Math.exp(-((x-6)**2+(y+2)**2)/10); const k = clamp((-y-1)/4,0,1);
+               return vecTo(230 - 35*k, lee); } },
+  { id:'rheintal', name:'Rhine Valley: föhn ⇄ valley breeze', min:-1, max:1, vmax:16, gust:1.65,
+    why:'Positive: south föhn / night-time mountain wind accelerated in the St. Gallen Rhine Valley, leaving the valley over the delta from SSE and fanning out towards Altenrhein–Rorschach. Negative: daytime valley breeze sucking lake air into the valley (converging flow).',
+    f:(x,y)=> jet(x,y, -2.5,-7.5, 160, 3.2, 6.5, 18) },
+  { id:'rhein', name:'Rhine river outflow', min:0, max:1, vmax:7, gust:1.2,
+    why:'Cold air draining along the river bed and the Rhine dams (mostly at night and in the morning) forms a narrow jet that pushes out of the new Rhine mouth between Fußach and Rohrspitz.',
+    f:(x,y)=> jet(x,y, -0.6,-3.2, 160, 0.9, 3.0, 20) },
+  { id:'wald', name:'Bregenzerwald / Bregenzer Ach (SE)', min:0, max:1, vmax:9, gust:1.35,
+    why:'Drainage and gap wind out of the Bregenzer Ach valley, plus the south-east Pfänderwind that crosses the Gebhardsberg (evening to early morning). Reaches the lake from SE between Bregenz and Hard.',
+    f:(x,y)=> jet(x,y, 5.2,-3.8, 140, 1.6, 3.5, 20) },
+  { id:'pfaender', name:'Pfänder downslope wind (E/NE)', min:0, max:1, vmax:13, gust:1.5,
+    why:'Classical Pfänderwind: easterly/north-easterly flow crosses the Pfänder ridge and falls foehn-like onto Lochau and Bregenz. Strong close to the shore, gone a few km out.',
+    f:(x,y)=> slope(x,y, [8.2,-3.0], [7.0,2.5], 70, 3.5) },
+  { id:'thermal', name:'Thermal: land breeze ⇄ lake breeze', min:-1, max:1, vmax:5, gust:1.15,
+    why:'Positive: at night and in the morning the shores cool faster than the lake, cold air drains offshore from every side and converges over the open water. Negative: on sunny afternoons the land heats up and the wind blows from the lake towards every shore (diverging).',
+    f:(x,y)=>{ const cx=-3, cy=0.5, dx=cx-x, dy=cy-y, r=Math.hypot(dx,dy)||1e-6; const k=Math.tanh(r/3)*Math.exp(-Math.max(0,r-9)/4);
+               return [dx/r*k, dy/r*k]; } },
+  { id:'swiss', name:'Swiss hills (Appenzell, S/SSW)', min:0, max:1, vmax:9, gust:1.4,
+    why:'Downslope wind and "Appenzeller föhn" from the hills above Rorschach and Altenrhein, hitting the Swiss shore from S to SSW and decaying offshore.',
+    f:(x,y)=> slope(x,y, [-15,-6.6], [-5.5,-5.4], 195, 3.5) },
+];
+// Wind from a set of strengths at local km coordinates
+function modelUV(x,y, S){
+  let u=0, v=0, gw=0, g=0;
+  for(const sys of SYSTEMS){ const s = S[sys.id]||0; if(!s) continue;
+    const [a,b] = sys.f(x,y); const k = s*sys.vmax; u += a*k; v += b*k;
+    const m = Math.hypot(a*k,b*k); gw += m; g += m*sys.gust; }
+  return {u, v, gf: gw ? g/gw : 1.3};
+}
+// Fit strengths to station observations: bounded, ridge-regularised least squares (projected gradient)
+function fitSystems(obs){ // obs: [{x,y,u,v}]
+  const B = obs.map(o => SYSTEMS.map(sys => { const [a,b] = sys.f(o.x,o.y); return [a*sys.vmax, b*sys.vmax]; }));
+  const lam = 6; let L = lam; B.forEach(r=>r.forEach(([a,b])=>L+=a*a+b*b));
+  const s = SYSTEMS.map(()=>0);
+  for(let it=0; it<800; it++){
+    const g = s.map((sk,k)=>lam*sk);
+    obs.forEach((o,i)=>{ let pu=0,pv=0; s.forEach((sk,k)=>{pu+=sk*B[i][k][0]; pv+=sk*B[i][k][1];});
+      const ru=pu-o.u, rv=pv-o.v; s.forEach((_,k)=>{ g[k]+= ru*B[i][k][0] + rv*B[i][k][1]; }); });
+    s.forEach((sk,k)=>{ s[k] = clamp(sk - g[k]/L, SYSTEMS[k].min, SYSTEMS[k].max); });
+  }
+  const S = {}; SYSTEMS.forEach((sys,k)=>S[sys.id]=+s[k].toFixed(3));
+  const resid = obs.map(o=>{ const m = modelUV(o.x,o.y,S); return {x:o.x, y:o.y, u:o.u-m.u, v:o.v-m.v}; });
+  return {S, resid};
+}
+
+// ---------- Field used by the animation: live fit or simulator ----------
+const PRESETS = {
+  night:  {label:'Calm night – the circle (land-breeze convergence)', S:{thermal:0.7, pfaender:0.2, wald:0.25, rhein:0.3}},
+  foehn:  {label:'Föhn storm out of the Rhine Valley', S:{rheintal:0.9, rhein:0.2, wald:0.3, swiss:0.45, west:0.1}},
+  west:   {label:'Westerly front', S:{west:0.8, rheintal:-0.1}},
+  bise:   {label:'Bise with Pfänderwind', S:{north:0.6, pfaender:0.5}},
+  pfaender:{label:'Spring evening Pfänderwind', S:{pfaender:0.8, north:0.25}},
+  summer: {label:'Sunny summer afternoon (lake & valley breeze)', S:{thermal:-0.7, rheintal:-0.45, west:0.1}},
+  calm:   {label:'All off', S:{}},
+};
+let MODE = 'live', SIM = {...PRESETS.night.S}, FIT = null;
+function refit(){
+  const obs=[], ratios=[];
+  for(const st of STATIONS){ const r=(DATA[st.id]||[]).slice(-1)[0]; if(!r||r.dd==null||r.ff==null) continue;
+    const [x,y]=toXY(st.lat,st.lon), [u,v]=vecTo(r.dd+180, r.ff); obs.push({x,y,u,v});
+    if(r.fx!=null && r.ff>0.5) ratios.push(r.fx/r.ff); }
+  if(!obs.length){ FIT=null; return; }
+  ratios.sort((a,b)=>a-b);
+  FIT = {...fitSystems(obs), gr: clamp(ratios.length?ratios[Math.floor(ratios.length/2)]:1.4, 1.1, 2.5)};
+}
+function currentField(lat, lon){
+  const [x,y]=toXY(lat,lon);
+  if(MODE==='sim'){ const m=modelUV(x,y,SIM), sp=Math.hypot(m.u,m.v); return {u:m.u, v:m.v, mean:sp, gust:sp*m.gf}; }
+  if(!FIT) return null;
+  const m=modelUV(x,y,FIT.S); let u=m.u, v=m.v;
+  for(const r of FIT.resid){ const w=Math.exp(-((x-r.x)**2+(y-r.y)**2)/18); u+=w*r.u; v+=w*r.v; } // honour each station locally
+  const sp=Math.hypot(u,v); return {u, v, mean:sp, gust:sp*FIT.gr};
+}
+function windField(lat, lon){
+  const f=currentField(lat,lon); if(!f) return null;
+  const m=Math.hypot(f.u,f.v)||1e-6; return {ux:f.u/m, uy:f.v/m, mean:f.mean, gust:Math.max(f.gust,f.mean)};
+}
+function windRegrid(){
+  if(!W.cv) return;
+  const st=W.step*W.dpr; W.gw=Math.ceil(W.cv.width/st)+1; W.gh=Math.ceil(W.cv.height/st)+1;
+  W.grid=new Array(W.gw*W.gh); let any=false;
+  for(let j=0;j<W.gh;j++) for(let i=0;i<W.gw;i++){
+    const ll=MAP.containerPointToLatLng([i*st/W.dpr, j*st/W.dpr]);
+    const f=windField(ll.lat, ll.lng); W.grid[j*W.gw+i]=f; if(f) any=true;
+  }
+  W.ready=any; if(!any && W.ctx) W.ctx.clearRect(0,0,W.cv.width,W.cv.height); windStart();
+}
+
+// ---------- Simulator panel ----------
+const fmtS = (sys,s) => (sys.min<0 && s>0 ? '+' : '') + s.toFixed(2);
+function buildPanel(){
+  const sel=document.getElementById('preset');
+  sel.innerHTML='<option value="">Load a scenario …</option>'+Object.entries(PRESETS).map(([k,p])=>`<option value="${k}">${p.label}</option>`).join('');
+  sel.onchange=()=>{ if(!sel.value) return; SIM={...PRESETS[sel.value].S}; setMode('sim'); sel.value=''; };
+  document.getElementById('sliders').innerHTML = SYSTEMS.map(sys=>`
+    <div class="sl" data-id="${sys.id}">
+      <div class="slh"><b>${sys.name}</b><span class="slv"></span></div>
+      <input type="range" min="${sys.min}" max="${sys.max}" step="0.01" aria-label="${sys.name}">
+      ${sys.min<0?`<div class="ends"><span>${sys.id==='thermal'?'← lake breeze (day)':'← valley breeze (day)'}</span><span>${sys.id==='thermal'?'land breeze (night) →':'föhn / mountain wind →'}</span></div>`:''}
+      <p>${sys.why}</p>
+    </div>`).join('');
+  document.querySelectorAll('#sliders .sl').forEach(el=>{
+    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), inp=el.querySelector('input');
+    inp.oninput=()=>{ if(MODE!=='sim'){ SIM={...(FIT?FIT.S:SIM)}; setMode('sim', true); } SIM[sys.id]=+inp.value; syncSliders(); windRegrid(); };
+  });
+  document.querySelectorAll('#mode button').forEach(b=> b.onclick=()=>{
+    if(b.dataset.m==='sim' && MODE!=='sim' && FIT) SIM={...FIT.S};
+    setMode(b.dataset.m); });
+  syncSliders();
+}
+function syncSliders(){
+  const S = MODE==='sim' ? SIM : (FIT ? FIT.S : {});
+  document.querySelectorAll('#sliders .sl').forEach(el=>{
+    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), v=S[sys.id]||0;
+    el.querySelector('input').value=v;
+    el.querySelector('.slv').textContent = `${fmtS(sys,v)} · up to ${fmt(Math.abs(v)*sys.vmax)} ${ULABEL[UNIT]}`;
+    el.classList.toggle('active', Math.abs(v)>0.02);
+  });
+  document.getElementById('modeNote').textContent = MODE==='sim'
+    ? 'Simulator: the flow shows only the wind systems you set. Station markers still show live data.'
+    : (FIT ? 'Live: the eight systems are fitted to the four stations right now (sliders show the fit). Move a slider to take over.' : 'Live: waiting for station data …');
+}
+function setMode(m, keep){
+  MODE=m;
+  document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on', b.dataset.m===m));
+  Object.values(MARKERS).forEach(mk=>mk.setOpacity(m==='sim'?0.35:1));
+  syncSliders(); windRegrid();
+}
+
+// ---------- Boat: hold a fixed angle to the wind, never touch the sails ----------
+const BOAT = {placing:false, run:false, lat:0, lon:0, path:[], line:null, mk:null, turned:0, prevH:null, sec:0, n:0, raf:null, full:false};
+function lakeContains(lat, lon){
+  let inside=false;
+  for(let i=0,j=LAKE.length-1;i<LAKE.length;j=i++){ const [xi,yi]=LAKE[i], [xj,yj]=LAKE[j];
+    if(((yi>lat)!==(yj>lat)) && (lon < (xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside; }
+  return inside;
+}
+const boatSvg = h => `<svg width="34" height="34" viewBox="-17 -17 34 34" style="transform:rotate(${h}deg)"><path d="M0 -13 L6 9 L0 6 L-6 9Z" fill="#fff" stroke="#08131a" stroke-width="1.6"/></svg>`;
+function boatInfo(txt){ document.getElementById('boatInfo').innerHTML = txt; }
+function boatClear(){
+  BOAT.run=false; if(BOAT.raf) cancelAnimationFrame(BOAT.raf); BOAT.raf=null;
+  if(BOAT.line) MAP.removeLayer(BOAT.line); if(BOAT.mk) MAP.removeLayer(BOAT.mk); BOAT.line=BOAT.mk=null; boatInfo('');
+}
+function boatStart(lat, lon){
+  boatClear();
+  Object.assign(BOAT, {run:true, lat, lon, path:[[lat,lon]], turned:0, prevH:null, sec:0, n:0, full:false});
+  BOAT.line = L.polyline(BOAT.path, {color:'#ffffff', weight:2.5, opacity:0.9, dashArray:'1 6', lineCap:'round'}).addTo(MAP);
+  BOAT.mk = L.marker([lat,lon], {icon:L.divIcon({className:'', html:boatSvg(0), iconSize:[34,34], iconAnchor:[17,17]}), interactive:false, zIndexOffset:1000}).addTo(MAP);
+  BOAT.raf = requestAnimationFrame(boatFrame);
+}
+function boatFrame(){
+  BOAT.raf=null; if(!BOAT.run) return;
+  const twa=+document.getElementById('twa').value, tack=document.getElementById('tack').value==='stbd'?1:-1, dt=5;
+  let h=0, ws=0, stop='';
+  for(let k=0;k<5;k++){
+    const f=currentField(BOAT.lat, BOAT.lon); if(!f){ stop='no wind data'; break; }
+    ws=Math.hypot(f.u,f.v); const from=(Math.atan2(-f.u,-f.v)/DEG+360)%360;
+    h = tack>0 ? from-twa : from+twa;                    // starboard tack: wind comes over the right side
+    if(BOAT.prevH!=null) BOAT.turned += ((h-BOAT.prevH+540)%360)-180; BOAT.prevH=h;
+    const sp=clamp(0.45*ws, 0.3, 4.5), d=sp*dt;           // simple polar: ~45% of wind speed
+    BOAT.lat += d*Math.cos(h*DEG)/111200; BOAT.lon += d*Math.sin(h*DEG)/(111200*Math.cos(BOAT.lat*DEG));
+    BOAT.sec += dt;
+    if(!lakeContains(BOAT.lat, BOAT.lon)){ stop='reached the shore'; break; }
+  }
+  BOAT.path.push([BOAT.lat,BOAT.lon]); BOAT.n++;
+  if(BOAT.n%2===0) BOAT.line.setLatLngs(BOAT.path);
+  BOAT.mk.setLatLng([BOAT.lat,BOAT.lon]);
+  const el=BOAT.mk.getElement(); if(el) el.firstChild.style.transform=`rotate(${h}deg)`;
+  const turned=Math.abs(BOAT.turned);
+  if(turned>=360 && !BOAT.full) BOAT.full=true;
+  const tt = `${Math.floor(BOAT.sec/3600)} h ${String(Math.floor(BOAT.sec/60)%60).padStart(2,'0')} min`;
+  boatInfo(`Sails untouched (${twa}° to the wind, ${tack>0?'starboard':'port'} tack) · heading has turned <b>${Math.round(turned)}°</b> · ${tt} sailed${BOAT.full?' · <b class="ok">full circle!</b>':''}${stop?' · stopped: '+stop:''}`);
+  if(stop || turned>=720 || BOAT.n>6000){ BOAT.run=false; BOAT.line.setLatLngs(BOAT.path); return; }
+  BOAT.raf=requestAnimationFrame(boatFrame);
+}
+function boatSetup(){
+  document.getElementById('boatBtn').onclick=()=>{ BOAT.placing=true; MAP.getContainer().style.cursor='crosshair'; boatInfo('Click on the lake to put the boat in the water.'); };
+  document.getElementById('boatClear').onclick=boatClear;
+  MAP.on('click', e=>{ if(!BOAT.placing) return; BOAT.placing=false; MAP.getContainer().style.cursor='';
+    if(!lakeContains(e.latlng.lat, e.latlng.lng)){ boatInfo('That is not water – try again.'); return; }
+    boatStart(e.latlng.lat, e.latlng.lng); });
+}
+
 function windSetup(){
   if(!MAP) return;
   if(!W.cv){
@@ -290,7 +539,7 @@ function windSetup(){
     const btn=document.getElementById('animToggle');
     const sync=()=>{ btn.textContent = W.on ? 'Animation: on' : 'Animation: off'; btn.classList.toggle('on',W.on); };
     btn.onclick=()=>{ W.on=!W.on; sync(); if(W.on) windStart(); else { cancelAnimationFrame(W.raf); W.raf=null; W.ctx.clearRect(0,0,W.cv.width,W.cv.height); } };
-    sync();
+    sync(); buildPanel(); boatSetup();
   }
   windRebuild(); windStart();
 }
@@ -300,14 +549,7 @@ function windRebuild(){
   const p=new Path2D();
   LAKE.forEach(([lo,la],i)=>{ const q=MAP.latLngToContainerPoint([la,lo]); i?p.lineTo(q.x*W.dpr,q.y*W.dpr):p.moveTo(q.x*W.dpr,q.y*W.dpr); });
   p.closePath(); W.path=p;
-  // precompute the interpolated field on a coarse screen grid
-  const st=W.step*W.dpr; W.gw=Math.ceil(W.cv.width/st)+1; W.gh=Math.ceil(W.cv.height/st)+1;
-  W.grid=new Array(W.gw*W.gh); let any=false;
-  for(let j=0;j<W.gh;j++) for(let i=0;i<W.gw;i++){
-    const ll=MAP.containerPointToLatLng([i*st/W.dpr, j*st/W.dpr]);
-    const f=windField(ll.lat, ll.lng); W.grid[j*W.gw+i]=f; if(f) any=true;
-  }
-  W.ready=any;
+  windRegrid();
   // particle count scales with visible lake area
   let inside=0, probe=400;
   for(let k=0;k<probe;k++) if(W.ctx.isPointInPath(W.path, Math.random()*W.cv.width, Math.random()*W.cv.height)) inside++;
@@ -362,7 +604,7 @@ function windFrame(){
   W.raf=requestAnimationFrame(windFrame);
 }
 function windStart(){ if(W.on && !W.raf && W.ready) W.raf=requestAnimationFrame(windFrame); }
-function render(){ renderSummary(); renderMap(); renderList(); if(window.L && MAP) windSetup(); }
+function render(){ renderSummary(); renderMap(); renderList(); if(window.L && MAP){ windSetup(); Object.values(MARKERS).forEach(mk=>mk.setOpacity(MODE==='sim'?0.35:1)); syncSliders(); } }
 
 document.querySelectorAll('#units button').forEach(b=>{
   b.classList.toggle('on', b.dataset.u===UNIT);
