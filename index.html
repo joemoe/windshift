@@ -31,7 +31,7 @@
   main{display:grid;grid-template-columns:1fr var(--side);min-height:0}
   .mapwrap{position:relative;min-height:0}
   #map{position:absolute;inset:0;background:var(--water)}
-  aside{overflow-y:auto;border-left:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  aside{overflow-y:auto;border-left:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:8px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
   @media (orientation:portrait), (max-width:820px){
     body{overflow:auto}
     .app{height:auto;min-height:100dvh}
@@ -49,7 +49,7 @@
   .summary .v{font-size:14px;font-weight:600}
   .warn{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;color:#08131a;margin-left:auto}
   /* stations */
-  .st{display:grid;grid-template-columns:30px 1fr 84px 66px;gap:8px;align-items:center;padding:4px 0;border-top:1px solid var(--line)}
+  .st{display:grid;grid-template-columns:28px 1fr 84px 62px;gap:8px;align-items:center;padding:3px 0;border-top:1px solid var(--line)}
   .st:first-of-type{border-top:0}
   .st .nm b{font-size:13px;display:block}
   .st .nm span{font-size:10px;color:var(--mute)}
@@ -58,26 +58,27 @@
   .st svg.spark{width:84px;height:26px}
   .st.stale{opacity:.5}
   .err{color:var(--b4);font-size:11px}
-  .mini{width:30px;height:30px}
+  .mini{width:28px;height:28px}
   /* model */
   .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .note{font-size:11px;color:var(--mute);margin-top:6px;line-height:1.4}
   .note b{color:var(--ink)} .note .ok{color:var(--b1)}
-  .sys{display:grid;grid-template-columns:10px 1fr 18px;gap:2px 6px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
+  .sys{display:grid;grid-template-columns:10px 1fr 18px;gap:1px 6px;align-items:center;padding:3px 0;border-top:1px solid var(--line)}
   .sys:first-of-type{border-top:0}
   .sys .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
   .sys .nm{font-size:12px;display:flex;gap:6px;align-items:baseline;min-width:0}
   .sys .nm b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sys .nm span{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mute);white-space:nowrap}
   .sys .i{width:18px;height:18px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);font:600 11px Inter,sans-serif;cursor:pointer;padding:0}
-  .sys input[type=range]{grid-column:2 / 4;width:100%;margin:0;accent-color:var(--c);height:18px}
-  .sys .ends{grid-column:2 / 4;display:flex;justify-content:space-between;font-size:9px;color:var(--mute);margin-top:-2px}
+  .sys input[type=range]{grid-column:2 / 4;width:100%;margin:0;accent-color:var(--c);height:16px}
+  .sys .ends{grid-column:2 / 4;display:none;justify-content:space-between;font-size:9px;color:var(--mute);margin-top:-2px}
   .sys .dirrow{grid-column:2 / 4;display:flex;align-items:center;gap:6px;font-size:10px;color:var(--mute)}
   .sys .dirrow input{flex:1}
   .sys .dirrow b{font-family:'JetBrains Mono',monospace;color:var(--ink);font-weight:500;min-width:58px;text-align:right}
-  .sys .hint{grid-column:2 / 4;font-size:10px;color:var(--b2);line-height:1.35}
+  .sys .hint{grid-column:2 / 4;display:none;font-size:10px;color:var(--b2);line-height:1.35}
   .sys .why{grid-column:2 / 4;font-size:11px;color:var(--mute);line-height:1.4;display:none;background:var(--panel2);border-radius:6px;padding:6px 8px;margin-top:2px}
   .sys.open .why{display:block}
+  .sys.open .ends{display:flex} .sys.open .hint{display:block}
   .sys.off{opacity:.6}
   details.about{font-size:11px;color:var(--mute);line-height:1.5}
   details.about summary{cursor:pointer}
@@ -558,7 +559,7 @@ function syncPanel(){
     el.querySelector('.slv').textContent = `${fmtS(sys,v)} · ${T().upto} ${fmt(Math.abs(v)*sys.vmax)} ${ULABEL[UNIT]}`;
     el.classList.toggle('off', Math.abs(v)<=0.02);
     if(sys.dir){ const d=S.synDir??270; el.querySelector('input.dir').value=d; el.querySelector('.dirv').textContent=`${d}° ${dirName(d)}`;
-      el.querySelector('.fromL').textContent=T().from; el.querySelector('.hint').textContent=T().hints[synHintKey(d)]; }
+      el.querySelector('.fromL').textContent=T().from; el.querySelector('.hint').textContent=T().hints[synHintKey(d)]; el.querySelector('.dirrow').title=T().hints[synHintKey(d)]; }
     if(sys.min<0){ const [e0,e1]=T().ends[sys.id]; el.querySelector('.e0').textContent=e0; el.querySelector('.e1').textContent=e1; }
   });
   document.getElementById('modeNote').textContent = MODE==='sim' ? T().noteSim : (FIT ? T().noteLive : T().noteWait);
