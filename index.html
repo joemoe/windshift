@@ -24,6 +24,7 @@
   .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .seg button{background:none;border:0;color:var(--mute);padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
   .seg button.on{background:var(--panel2);color:var(--ink);font-weight:600}
+  .btn.on{border-color:var(--b1)}
   .btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
   .grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
   @media (max-width:860px){.grid{grid-template-columns:1fr}}
@@ -74,6 +75,7 @@
         <button data-u="kmh">km/h</button>
         <button data-u="ms">m/s</button>
       </div>
+      <button class="btn" id="animToggle">Animation: on</button>
       <button class="btn" id="reload">Refresh</button>
     </div>
   </header>
@@ -91,7 +93,7 @@
   <footer>
     Data sources: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data),
     <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>,
-    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. Refreshes automatically every 5 minutes.<br>
+    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. The animated flow is a model: wind interpolated between stations (inverse-distance weighting), gusts simulated between mean and peak, motion sped up for visibility. Refreshes automatically every 5 minutes.<br>
     Prototype – not an official storm warning. Always follow the storm warning lights around the lake.
   </footer>
 </div>
@@ -198,7 +200,7 @@ function renderMap(){
     else MARKERS[st.id] = L.marker([st.lat, st.lon], {icon, keyboard:false}).addTo(MAP)
       .bindTooltip(`${st.src}${last?' · '+hhmm(last.t):''}`, {direction:'bottom', offset:[0,8]});
   }
-  document.getElementById('legend').innerHTML = [['var(--b0)','< 3 Bft'],['var(--b1)','3 Bft'],['var(--b2)','4 Bft'],['var(--b3)','5–6 Bft'],['var(--b4)','≥ 7 Bft']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + '<span style="margin-left:auto">Arrow points where the wind is blowing to</span>';
+  document.getElementById('legend').innerHTML = [['var(--b0)','< 3 Bft'],['var(--b1)','3 Bft'],['var(--b2)','4 Bft'],['var(--b3)','5–6 Bft'],['var(--b4)','≥ 7 Bft']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + '<span style="margin-left:auto">Arrow points where the wind is blowing to · flow: interpolated, sped up</span>';
 }
 function spark(rows){
   if(rows.length<2) return `<svg class="spark" viewBox="0 0 300 44"><text x="0" y="28" class="maplabel">Building history …</text></svg>`;
@@ -249,7 +251,118 @@ function renderSummary(){
     <div><div class="k">Strongest gust</div><div class="v">${fmt(gmax)} ${ULABEL[UNIT]}</div></div>
     <div class="warn" style="background:${w[1]};color:#08131a">${w[0]}</div>`;
 }
-function render(){ renderSummary(); renderMap(); renderList(); }
+// ---------- Wind animation (particle flow over the lake) ----------
+// Assumptions: the wind field between stations is interpolated with inverse-distance
+// weighting on the u/v components; gusts are simulated as moving cells that push the
+// local speed from the 10-min mean towards the measured peak; motion is sped up
+// (time-lapse) so it stays visible at every zoom level.
+const LAKE = [[9.2961,47.6128],[9.3266,47.5933],[9.3437,47.5858],[9.3456,47.587],[9.3484,47.5839],[9.3821,47.5708],[9.384,47.5704],[9.3843,47.5707],[9.3847,47.5619],[9.3824,47.5645],[9.3842,47.5619],[9.3824,47.562],[9.3802,47.5543],[9.3866,47.5505],[9.3816,47.5477],[9.3867,47.5504],[9.3861,47.5475],[9.3906,47.5433],[9.4053,47.5363],[9.4222,47.5235],[9.4378,47.5186],[9.4395,47.5149],[9.4413,47.5139],[9.4415,47.5136],[9.4416,47.5133],[9.4395,47.5149],[9.4402,47.5125],[9.4379,47.5137],[9.439,47.5124],[9.4351,47.5117],[9.436,47.5064],[9.4458,47.5058],[9.4482,47.5013],[9.4535,47.5002],[9.4518,47.4993],[9.4693,47.4946],[9.4775,47.4896],[9.4793,47.4828],[9.4862,47.4799],[9.4993,47.4781],[9.5308,47.4803],[9.5324,47.4813],[9.5314,47.4827],[9.5325,47.483],[9.533,47.4812],[9.5389,47.482],[9.5442,47.4857],[9.5456,47.491],[9.5481,47.4898],[9.5479,47.4907],[9.547,47.4906],[9.5465,47.4911],[9.5464,47.4914],[9.5549,47.4961],[9.555,47.501],[9.5601,47.5011],[9.5613,47.5042],[9.56,47.4992],[9.5625,47.5042],[9.5624,47.5002],[9.5686,47.5013],[9.5709,47.4953],[9.5863,47.4907],[9.585,47.4885],[9.5857,47.4878],[9.5857,47.489],[9.5866,47.4901],[9.587,47.4877],[9.6028,47.4895],[9.6091,47.4879],[9.6087,47.4907],[9.6132,47.4922],[9.6129,47.4908],[9.6132,47.4906],[9.6157,47.4956],[9.624,47.4945],[9.6336,47.503],[9.6446,47.5071],[9.6472,47.5061],[9.6454,47.5032],[9.6379,47.4991],[9.6407,47.4924],[9.6504,47.4872],[9.6487,47.4902],[9.6546,47.4925],[9.6619,47.4907],[9.6616,47.4886],[9.6676,47.4864],[9.664,47.4882],[9.6642,47.4917],[9.6625,47.492],[9.6622,47.4912],[9.662,47.4912],[9.6626,47.4922],[9.6664,47.4913],[9.668,47.4916],[9.6621,47.4947],[9.6683,47.4945],[9.665,47.4977],[9.6666,47.503],[9.6549,47.5082],[9.6571,47.5108],[9.6497,47.5155],[9.6477,47.5144],[9.6487,47.5162],[9.6433,47.5248],[9.646,47.526],[9.6517,47.5208],[9.6516,47.5177],[9.6615,47.5134],[9.6607,47.5123],[9.6705,47.5056],[9.6724,47.4989],[9.6787,47.4979],[9.6853,47.5018],[9.6787,47.4973],[9.6787,47.4935],[9.681,47.4919],[9.6878,47.4928],[9.6851,47.4968],[9.6853,47.4999],[9.6861,47.5007],[9.6869,47.4953],[9.6882,47.495],[9.6874,47.4973],[9.6892,47.4972],[9.6875,47.4979],[9.6894,47.4976],[9.6898,47.5003],[9.6849,47.5041],[9.6919,47.5066],[9.728,47.5075],[9.7419,47.5044],[9.7458,47.5056],[9.7463,47.5085],[9.7506,47.5085],[9.7538,47.5151],[9.7508,47.5217],[9.7417,47.5296],[9.7415,47.5282],[9.7366,47.5317],[9.73,47.5336],[9.7289,47.5324],[9.7281,47.5329],[9.7274,47.5346],[9.7317,47.5343],[9.7283,47.5346],[9.723,47.5446],[9.7127,47.5505],[9.7044,47.5488],[9.7011,47.5511],[9.6928,47.5497],[9.6829,47.552],[9.6813,47.5486],[9.6915,47.5482],[9.6862,47.5449],[9.6884,47.544],[9.6809,47.5422],[9.6753,47.5458],[9.6804,47.548],[9.6825,47.5525],[9.6794,47.5568],[9.6536,47.5567],[9.6439,47.5613],[9.6393,47.5668],[9.6293,47.5662],[9.6308,47.5694],[9.6275,47.571],[9.6143,47.5697],[9.6067,47.5735],[9.6074,47.5761],[9.6024,47.5841],[9.5963,47.5883],[9.5726,47.5841],[9.5505,47.5878],[9.5298,47.603],[9.5267,47.6154],[9.518,47.6214],[9.5157,47.6339],[9.4953,47.6498],[9.4878,47.6511],[9.4827,47.6487],[9.4859,47.6519],[9.4821,47.6486],[9.4717,47.6513],[9.4628,47.6484],[9.4523,47.655],[9.4354,47.6566],[9.4209,47.6657],[9.4072,47.6683],[9.3927,47.6682],[9.3873,47.6645],[9.3701,47.6653],[9.3675,47.6621],[9.3653,47.6634],[9.3569,47.6601],[9.3492,47.661],[9.3326,47.6667]]; // OSM outline of the eastern Obersee [lon,lat]
+const PCOL = ['#7fb3c8','#4fc3a1','#c9d85a','#f2a93b','#ef5b4c'];
+const pBin = ms => ms<3.4?0 : ms<5.5?1 : ms<8?2 : ms<12.9?3 : 4;
+const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const W = { on: !REDUCED, cv:null, ctx:null, dpr:1, path:null, grid:null, gw:0, gh:0, step:12, parts:[], raf:null, t:0, moving:false, ready:false };
+
+function windField(lat, lon){
+  // IDW of u/v (towards-vector), mean and gust speed
+  let su=0, sv=0, sf=0, sx=0, sw=0;
+  for(const st of STATIONS){
+    const r=(DATA[st.id]||[]).slice(-1)[0]; if(!r||r.dd==null||r.ff==null) continue;
+    const dy=(lat-st.lat)*111.2, dx=(lon-st.lon)*111.2*Math.cos(lat*Math.PI/180);
+    const w=1/(dx*dx+dy*dy+0.4);
+    const a=(r.dd+180)*Math.PI/180;
+    su+=w*Math.sin(a)*r.ff; sv+=w*Math.cos(a)*r.ff; sf+=w*r.ff; sx+=w*(r.fx??r.ff); sw+=w;
+  }
+  if(!sw) return null;
+  const u=su/sw, v=sv/sw, mean=sf/sw, gust=Math.max(sx/sw, mean);
+  const m=Math.hypot(u,v)||1e-6;
+  return {ux:u/m, uy:v/m, mean, gust};   // unit direction + speeds (m/s)
+}
+function windSetup(){
+  if(!MAP) return;
+  if(!W.cv){
+    W.cv=document.createElement('canvas');
+    W.cv.style.cssText='position:absolute;inset:0;z-index:450;pointer-events:none;transition:opacity .25s';
+    MAP.getContainer().appendChild(W.cv);
+    W.ctx=W.cv.getContext('2d');
+    MAP.on('movestart zoomstart', ()=>{ W.moving=true; W.cv.style.opacity=0; });
+    MAP.on('moveend zoomend resize', ()=>{ W.moving=false; windRebuild(); W.cv.style.opacity=1; });
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) windStart(); });
+    const btn=document.getElementById('animToggle');
+    const sync=()=>{ btn.textContent = W.on ? 'Animation: on' : 'Animation: off'; btn.classList.toggle('on',W.on); };
+    btn.onclick=()=>{ W.on=!W.on; sync(); if(W.on) windStart(); else { cancelAnimationFrame(W.raf); W.raf=null; W.ctx.clearRect(0,0,W.cv.width,W.cv.height); } };
+    sync();
+  }
+  windRebuild(); windStart();
+}
+function windRebuild(){
+  const size=MAP.getSize(); W.dpr=Math.min(window.devicePixelRatio||1, 2);
+  W.cv.width=size.x*W.dpr; W.cv.height=size.y*W.dpr; W.cv.style.width=size.x+'px'; W.cv.style.height=size.y+'px';
+  const p=new Path2D();
+  LAKE.forEach(([lo,la],i)=>{ const q=MAP.latLngToContainerPoint([la,lo]); i?p.lineTo(q.x*W.dpr,q.y*W.dpr):p.moveTo(q.x*W.dpr,q.y*W.dpr); });
+  p.closePath(); W.path=p;
+  // precompute the interpolated field on a coarse screen grid
+  const st=W.step*W.dpr; W.gw=Math.ceil(W.cv.width/st)+1; W.gh=Math.ceil(W.cv.height/st)+1;
+  W.grid=new Array(W.gw*W.gh); let any=false;
+  for(let j=0;j<W.gh;j++) for(let i=0;i<W.gw;i++){
+    const ll=MAP.containerPointToLatLng([i*st/W.dpr, j*st/W.dpr]);
+    const f=windField(ll.lat, ll.lng); W.grid[j*W.gw+i]=f; if(f) any=true;
+  }
+  W.ready=any;
+  // particle count scales with visible lake area
+  let inside=0, probe=400;
+  for(let k=0;k<probe;k++) if(W.ctx.isPointInPath(W.path, Math.random()*W.cv.width, Math.random()*W.cv.height)) inside++;
+  const lakePx=(inside/probe)*size.x*size.y;
+  const n=Math.max(150, Math.min(2600, Math.round(lakePx/95)));
+  W.parts=[]; for(let k=0;k<n;k++) W.parts.push(spawn({}, true));
+  W.ctx.clearRect(0,0,W.cv.width,W.cv.height);
+}
+function spawn(p, randomAge){
+  for(let k=0;k<30;k++){
+    const x=Math.random()*W.cv.width, y=Math.random()*W.cv.height;
+    if(W.ctx.isPointInPath(W.path,x,y)){ p.x=x; p.y=y; break; }
+  }
+  if(p.x==null){ p.x=Math.random()*W.cv.width; p.y=Math.random()*W.cv.height; }
+  p.max=50+Math.random()*90; p.age=randomAge?Math.random()*p.max:0; p.px=p.x; p.py=p.y;
+  return p;
+}
+function sample(x,y){
+  const st=W.step*W.dpr, i=Math.round(x/st), j=Math.round(y/st);
+  if(i<0||j<0||i>=W.gw||j>=W.gh) return null; return W.grid[j*W.gw+i];
+}
+function windFrame(){
+  W.raf=null;
+  if(!W.on || document.hidden || !W.ready) return;
+  if(!W.moving){
+    const c=W.ctx, t=(W.t+=1/60), d=W.dpr;
+    // fade previous frame -> trails
+    c.globalCompositeOperation='destination-in'; c.fillStyle='rgba(0,0,0,0.92)'; c.fillRect(0,0,W.cv.width,W.cv.height);
+    c.globalCompositeOperation='source-over';
+    c.save(); c.clip(W.path);
+    const bins=[[],[],[],[],[]];
+    for(const p of W.parts){
+      const f=sample(p.x,p.y);
+      if(!f || ++p.age>p.max){ spawn(p,false); continue; }
+      // travelling gust cells + slight direction wobble
+      const gx=p.x/d, gy=p.y/d;
+      const g=0.5+0.5*Math.sin(gx*0.011 - f.ux*t*2.2 + Math.sin(gy*0.007+t*0.3)*1.7) * Math.sin(gy*0.013 + f.uy*t*2.2 + 0.8);
+      const sp=f.mean + (f.gust-f.mean)*g*g;
+      const wob=Math.sin(gx*0.004+gy*0.005+t*0.6)*0.14;
+      const cs=Math.cos(wob), sn=Math.sin(wob);
+      const ux=f.ux*cs - f.uy*sn, uy=f.ux*sn + f.uy*cs;
+      const k=(0.55+sp*0.42)*d;            // time-lapse: px per frame
+      p.px=p.x; p.py=p.y; p.x+=ux*k; p.y-=uy*k;
+      if(!c.isPointInPath(W.path,p.x,p.y)){ spawn(p,false); continue; }
+      bins[pBin(sp)].push(p);
+    }
+    c.lineWidth=1.6*d; c.lineCap='round';
+    bins.forEach((b,i)=>{ if(!b.length) return; c.strokeStyle=PCOL[i]; c.globalAlpha=0.85; c.beginPath();
+      for(const p of b){ c.moveTo(p.px,p.py); c.lineTo(p.x,p.y); } c.stroke(); });
+    c.globalAlpha=1; c.restore();
+  }
+  W.raf=requestAnimationFrame(windFrame);
+}
+function windStart(){ if(W.on && !W.raf && W.ready) W.raf=requestAnimationFrame(windFrame); }
+function render(){ renderSummary(); renderMap(); renderList(); if(window.L && MAP) windSetup(); }
 
 document.querySelectorAll('#units button').forEach(b=>{
   b.classList.toggle('on', b.dataset.u===UNIT);
