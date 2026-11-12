@@ -80,6 +80,17 @@
   .sys.open .why{display:block}
   .sys.open .ends{display:flex} .sys.open .hint{display:block}
   .sys.off{opacity:.6}
+  .boat{border-top:1px solid var(--line);padding:6px 0 2px}
+  .boat:first-child{border-top:0}
+  .boat.sel{background:linear-gradient(90deg,rgba(255,255,255,.05),transparent);border-radius:6px}
+  .bh{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .bh b{font-size:12px;margin-right:2px}
+  .bh .dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+  .bh select{flex:1;min-width:110px}
+  .ib{width:26px;height:26px;padding:0;border-radius:7px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);cursor:pointer;font-size:12px}
+  .boat .note{margin-top:3px}
+  .legend .seg{margin-top:4px} .legend .seg button{padding:2px 7px;font-size:10px}
+  .legend .sysl span{margin-right:7px}
   details.about{font-size:11px;color:var(--mute);line-height:1.5}
   details.about summary{cursor:pointer}
   details.about a{color:var(--b0)}
@@ -91,7 +102,7 @@
   .wm .lbl{background:rgba(11,22,32,.85);border:1px solid var(--line);border-radius:7px;padding:2px 6px;text-align:center;white-space:nowrap;line-height:1.2}
   .wm .lbl b{font-size:11px;display:block}
   .wm .lbl span{font-family:'JetBrains Mono',monospace;font-size:11px}
-  .chip{display:inline-flex;align-items:center;gap:4px;background:rgba(11,22,32,.82);border:1.5px solid var(--c);border-radius:20px;padding:2px 7px 2px 3px;font-size:10px;white-space:nowrap;color:var(--ink);transform:translate(-50%,-50%);cursor:pointer}
+  .chip{display:inline-flex;align-items:center;gap:4px;background:rgba(11,22,32,.88);border:2px solid var(--c);border-radius:20px;padding:2px 8px 2px 3px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--ink);transform:translate(-50%,-50%);cursor:pointer}
   .chip svg{flex:none}
   .chip i{font-style:normal;font-family:'JetBrains Mono',monospace;color:var(--c)}
   .ovl{background:rgba(11,22,32,.85);border:1px solid var(--line);border-radius:10px;padding:6px 8px;color:var(--ink);font-size:11px}
@@ -125,14 +136,9 @@
         <div id="sliders"></div>
       </div>
       <div class="card">
-        <h2 data-i18n="boat"></h2>
-        <div class="row">
-          <button class="btn" id="boatBtn"></button>
-          <select id="twa" class="btn" aria-label="Angle to the wind"></select>
-          <select id="tack" class="btn" aria-label="Tack"></select>
-          <button class="btn" id="boatClear"></button>
-        </div>
-        <div class="note" id="boatInfo"></div>
+        <h2><span data-i18n="boat"></span><button class="btn" id="boatAdd" style="margin-left:auto"></button></h2>
+        <div class="note" id="boatHint"></div>
+        <div id="boats"></div>
       </div>
       <details class="about"><summary data-i18n="about"></summary><div id="aboutText"></div></details>
     </aside>
@@ -151,10 +157,12 @@ const I18N = {
   noteSim:'Simulator: the flow shows only the systems you set. Station markers still show live data.',
   noteLive:'Live: direction and strength of every system are fitted to the four stations (bars show the fit). Move a slider to take over.',
   noteWait:'Live: waiting for station data …', from:'from', upto:'up to',
-  boatBtn:'⛵ Drop boat', clear:'Clear', stbd:'starboard tack', port:'port tack',
+  addBoat:'+ Boat', boatName:n=>`Boat ${n}`, stbS:'Stbd', portS:'Port', stbd:'starboard tack', port:'port tack', play:'Sail / pause', restart:'Restart from start point', remove:'Remove',
+  boatHint:'Add a boat and tap the lake. Boats keep a fixed angle to the wind – drag them to move, change angle or tack any time.', limit:'2 turns',
+  colorBy:'Colour', bySpeed:'speed', bySys:'wind system',
   twa:{45:'45° close-hauled',60:'60° close reach',90:'90° beam reach',120:'120° broad reach',160:'160° running'},
   placing:'Tap on the lake to put the boat in the water.', notWater:'That is not water – try again.',
-  boatInfo:(twa,tack,turn,tt,full,stop)=>`Sails untouched (${twa}° to the wind, ${tack}) · heading turned <b>${turn}°</b> · ${tt} sailed${full?' · <b class="ok">full circle!</b>':''}${stop?' · stopped: '+stop:''}`,
+  boatInfo:(turn,tt,full,stop)=>`Heading turned <b>${turn}°</b> with untouched sails · ${tt}${full?' · <b class="ok">full circle!</b>':''}${stop?' · '+stop:''}`,
   shore:'reached the shore', nowind:'no wind data',
   legendArrow:'Arrows point where the wind blows to', synTitle:'Large-scale', calm:'calm',
   about:'About, model & sources',
@@ -184,10 +192,12 @@ const I18N = {
   noteSim:'Simulator: Die Strömung zeigt nur die eingestellten Systeme. Die Stationen zeigen weiter Live-Daten.',
   noteLive:'Live: Richtung und Stärke aller Systeme werden an die vier Stationen angepasst (Balken zeigen den Fit). Einen Regler bewegen, um selbst zu übernehmen.',
   noteWait:'Live: warte auf Stationsdaten …', from:'aus', upto:'bis',
-  boatBtn:'⛵ Boot setzen', clear:'Löschen', stbd:'Steuerbordbug', port:'Backbordbug',
+  addBoat:'+ Boot', boatName:n=>`Boot ${n}`, stbS:'Stb', portS:'Bb', stbd:'Steuerbordbug', port:'Backbordbug', play:'Segeln / Pause', restart:'Neu ab Startpunkt', remove:'Entfernen',
+  boatHint:'Boot hinzufügen und auf den See tippen. Boote halten einen festen Winkel zum Wind – zum Versetzen ziehen, Winkel und Bug jederzeit ändern.', limit:'2 Runden',
+  colorBy:'Farbe', bySpeed:'Stärke', bySys:'Windsystem',
   twa:{45:'45° hoch am Wind',60:'60° am Wind',90:'90° halber Wind',120:'120° raumschots',160:'160° vor dem Wind'},
   placing:'Tippe auf den See, um das Boot ins Wasser zu setzen.', notWater:'Das ist kein Wasser – nochmal versuchen.',
-  boatInfo:(twa,tack,turn,tt,full,stop)=>`Segel unverändert (${twa}° zum Wind, ${tack}) · Kurs gedreht um <b>${turn}°</b> · ${tt} gesegelt${full?' · <b class="ok">einmal im Kreis!</b>':''}${stop?' · gestoppt: '+stop:''}`,
+  boatInfo:(turn,tt,full,stop)=>`Kurs gedreht um <b>${turn}°</b> ohne Segel anzufassen · ${tt}${full?' · <b class="ok">einmal im Kreis!</b>':''}${stop?' · '+stop:''}`,
   shore:'Ufer erreicht', nowind:'keine Winddaten',
   legendArrow:'Pfeile zeigen, wohin der Wind weht', synTitle:'Großwetterlage', calm:'still',
   about:'Info, Modell & Quellen',
@@ -347,11 +357,11 @@ const SYSTEMS = [
 ];
 // Wind from a set of strengths at local km coordinates
 function modelUV(x,y, S){
-  let u=0, v=0, gw=0, g=0;
+  let u=0, v=0, gw=0, g=0, dom=null, dm=0;
   for(const sys of SYSTEMS){ const s = S[sys.id]||0; if(!s) continue;
     const [a,b] = sys.f(x,y,S.synDir??270); const k = s*sys.vmax; u += a*k; v += b*k;
-    const m = Math.hypot(a*k,b*k); gw += m; g += m*sys.gust; }
-  return {u, v, gf: gw ? g/gw : 1.3};
+    const m = Math.hypot(a*k,b*k); gw += m; g += m*sys.gust; if(m>dm){ dm=m; dom=sys.id; } }
+  return {u, v, gf: gw ? g/gw : 1.3, dom};
 }
 // Fit strengths to station observations: bounded, ridge-regularised least squares (projected gradient)
 function fitSystems(obs){ // obs: [{x,y,u,v}] – grid search over the large-scale direction, linear bounded LSQ for the strengths
@@ -400,15 +410,15 @@ function refit(){
 const curS = () => MODE==='sim' ? SIM : (FIT ? FIT.S : {});
 function currentField(lat, lon){
   const [x,y]=toXY(lat,lon);
-  if(MODE==='sim'){ const m=modelUV(x,y,SIM), sp=Math.hypot(m.u,m.v); return {u:m.u, v:m.v, mean:sp, gust:sp*m.gf}; }
+  if(MODE==='sim'){ const m=modelUV(x,y,SIM), sp=Math.hypot(m.u,m.v); return {u:m.u, v:m.v, mean:sp, gust:sp*m.gf, dom:m.dom}; }
   if(!FIT) return null;
   const m=modelUV(x,y,FIT.S); let u=m.u, v=m.v;
   for(const r of FIT.resid){ const w=Math.exp(-((x-r.x)**2+(y-r.y)**2)/18); u+=w*r.u; v+=w*r.v; }
-  const sp=Math.hypot(u,v); return {u, v, mean:sp, gust:sp*FIT.gr};
+  const sp=Math.hypot(u,v); return {u, v, mean:sp, gust:sp*FIT.gr, dom:m.dom};
 }
 function windField(lat, lon){
   const f=currentField(lat,lon); if(!f) return null;
-  const m=Math.hypot(f.u,f.v)||1e-6; return {ux:f.u/m, uy:f.v/m, mean:f.mean, gust:Math.max(f.gust,f.mean)};
+  const m=Math.hypot(f.u,f.v)||1e-6; return {ux:f.u/m, uy:f.v/m, mean:f.mean, gust:Math.max(f.gust,f.mean), dom:f.dom};
 }
 
 // =================== map ===================
@@ -445,7 +455,18 @@ function renderMap(){
     MARKERS[st.id].unbindTooltip().bindTooltip(`${st.src}${last?' · '+hhmm(last.t):''}`, {direction:'bottom', offset:[0,6]});
     MARKERS[st.id].setOpacity(MODE==='sim'?0.35:1);
   }
-  LEGCTRL.getContainer().innerHTML = [['var(--b0)','<3'],['var(--b1)','3'],['var(--b2)','4'],['var(--b3)','5–6'],['var(--b4)','≥7']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + ` Bft<br><span style="color:var(--mute)">${T().legendArrow}</span>`;
+  renderLegend();
+}
+function renderLegend(){
+  if(!LEGCTRL) return; const el=LEGCTRL.getContainer(), S=curS();
+  const speed = [['var(--b0)','<3'],['var(--b1)','3'],['var(--b2)','4'],['var(--b3)','5–6'],['var(--b4)','≥7']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + ' Bft';
+  const act = SYSTEMS.filter(sys=>Math.abs(S[sys.id]||0)>0.02);
+  const sys = act.length ? act.map(sys=>`<span><i style="background:${SYSCOL[sys.id]}"></i>${T().sys[sys.id][0]}</span>`).join('') : `<span style="color:var(--mute)">–</span>`;
+  el.innerHTML = `<div class="${COLORMODE==='sys'?'sysl':''}">${COLORMODE==='sys'?sys:speed}</div>
+    <div class="seg"><button data-c="speed" class="${COLORMODE==='speed'?'on':''}">${T().bySpeed}</button><button data-c="sys" class="${COLORMODE==='sys'?'on':''}">${T().bySys}</button></div>
+    <div style="color:var(--mute);margin-top:3px">${T().legendArrow}</div>`;
+  L.DomEvent.disableClickPropagation(el);
+  el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{ COLORMODE=b.dataset.c; try{localStorage.setItem('wind-color',COLORMODE)}catch(e){} renderLegend(); });
 }
 // --- visualise every wind system: footprint + chip with activity ---
 const SYSGEO = {
@@ -474,11 +495,11 @@ function renderSystems(){
     const s = S[id]||0, a=Math.min(1,Math.abs(s)), c=SYSCOL[id];
     let to = 0;
     if(g.type==='jet'){ to = s<0 ? g.from : g.from+180;
-      if(a>0.02) L.polygon(jetFan(g,s), {color:c, weight:1, opacity:0.25+0.5*a, fillColor:c, fillOpacity:0.05+0.18*a, interactive:false, dashArray:s<0?'4 4':null}).addTo(SYSLAYER); }
+      if(a>0.02) L.polygon(jetFan(g,s), {color:c, weight:2, opacity:0.4+0.5*a, fillColor:c, fillOpacity:0.1+0.25*a, interactive:false, dashArray:s<0?'4 4':null}).addTo(SYSLAYER); }
     if(g.type==='ridge'){ to = g.from+180;
-      L.polyline(g.p.map(([x,y])=>xyLL(x,y)), {color:c, weight:2+8*a, opacity:a>0.02?0.25+0.6*a:0.15, lineCap:'round', interactive:false}).addTo(SYSLAYER); }
+      L.polyline(g.p.map(([x,y])=>xyLL(x,y)), {color:c, weight:3+9*a, opacity:a>0.02?0.45+0.5*a:0.15, lineCap:'round', interactive:false}).addTo(SYSLAYER); }
     if(g.type==='ring'){ to = s>=0 ? 180 : 0;
-      if(a>0.02) L.circle(xyLL(...g.c), {radius:g.r*1000, color:c, weight:1.5, opacity:0.3+0.5*a, fill:false, dashArray:s>0?'2 8':'10 6', interactive:false}).addTo(SYSLAYER); }
+      if(a>0.02) L.circle(xyLL(...g.c), {radius:g.r*1000, color:c, weight:2.5, opacity:0.45+0.5*a, fill:false, dashArray:s>0?'2 8':'10 6', interactive:false}).addTo(SYSLAYER); }
     const mk = L.marker(xyLL(...g.chip), {icon:L.divIcon({className:'', html:chipHtml(id,s,to), iconSize:[0,0]}), zIndexOffset:300}).addTo(SYSLAYER);
     mk.on('click', ()=>focusSys(id));
   }
@@ -564,7 +585,7 @@ function syncPanel(){
   });
   document.getElementById('modeNote').textContent = MODE==='sim' ? T().noteSim : (FIT ? T().noteLive : T().noteWait);
 }
-function update(){ syncPanel(); renderSystems(); Object.values(MARKERS).forEach(mk=>mk.setOpacity(MODE==='sim'?0.35:1)); windRegrid(); }
+function update(){ syncPanel(); renderSystems(); renderLegend(); Object.values(MARKERS).forEach(mk=>mk.setOpacity(MODE==='sim'?0.35:1)); windRegrid(); }
 
 // =================== static texts & language ===================
 function applyLang(){
@@ -573,9 +594,8 @@ function applyLang(){
   document.querySelectorAll('#lang button').forEach(b=>b.classList.toggle('on', b.dataset.l===LANG));
   document.querySelector('#mode [data-m=live]').textContent=T().live; document.querySelector('#mode [data-m=sim]').textContent=T().sim;
   document.getElementById('preset').innerHTML = `<option value="">${T().load}</option>` + Object.keys(PRESETS).map(k=>`<option value="${k}">${T().presets[k]}</option>`).join('');
-  document.getElementById('boatBtn').textContent=T().boatBtn; document.getElementById('boatClear').textContent=T().clear;
-  const twa=document.getElementById('twa'), tv=twa.value||'90'; twa.innerHTML=Object.entries(T().twa).map(([k,l])=>`<option value="${k}">${l}</option>`).join(''); twa.value=tv;
-  const tack=document.getElementById('tack'), kv=tack.value||'stbd'; tack.innerHTML=`<option value="stbd">${T().stbd}</option><option value="port">${T().port}</option>`; tack.value=kv;
+  document.getElementById('boatAdd').textContent=T().addBoat;
+  renderBoats();
   document.getElementById('aboutText').innerHTML=T().aboutText;
   syncAnimBtn(); render();
 }
@@ -584,6 +604,7 @@ function syncAnimBtn(){ const b=document.getElementById('animToggle'); b.textCon
 // =================== animation ===================
 const LAKE = [[9.2961,47.6128],[9.3266,47.5933],[9.3437,47.5858],[9.3456,47.587],[9.3484,47.5839],[9.3821,47.5708],[9.384,47.5704],[9.3843,47.5707],[9.3847,47.5619],[9.3824,47.5645],[9.3842,47.5619],[9.3824,47.562],[9.3802,47.5543],[9.3866,47.5505],[9.3816,47.5477],[9.3867,47.5504],[9.3861,47.5475],[9.3906,47.5433],[9.4053,47.5363],[9.4222,47.5235],[9.4378,47.5186],[9.4395,47.5149],[9.4413,47.5139],[9.4415,47.5136],[9.4416,47.5133],[9.4395,47.5149],[9.4402,47.5125],[9.4379,47.5137],[9.439,47.5124],[9.4351,47.5117],[9.436,47.5064],[9.4458,47.5058],[9.4482,47.5013],[9.4535,47.5002],[9.4518,47.4993],[9.4693,47.4946],[9.4775,47.4896],[9.4793,47.4828],[9.4862,47.4799],[9.4993,47.4781],[9.5308,47.4803],[9.5324,47.4813],[9.5314,47.4827],[9.5325,47.483],[9.533,47.4812],[9.5389,47.482],[9.5442,47.4857],[9.5456,47.491],[9.5481,47.4898],[9.5479,47.4907],[9.547,47.4906],[9.5465,47.4911],[9.5464,47.4914],[9.5549,47.4961],[9.555,47.501],[9.5601,47.5011],[9.5613,47.5042],[9.56,47.4992],[9.5625,47.5042],[9.5624,47.5002],[9.5686,47.5013],[9.5709,47.4953],[9.5863,47.4907],[9.585,47.4885],[9.5857,47.4878],[9.5857,47.489],[9.5866,47.4901],[9.587,47.4877],[9.6028,47.4895],[9.6091,47.4879],[9.6087,47.4907],[9.6132,47.4922],[9.6129,47.4908],[9.6132,47.4906],[9.6157,47.4956],[9.624,47.4945],[9.6336,47.503],[9.6446,47.5071],[9.6472,47.5061],[9.6454,47.5032],[9.6379,47.4991],[9.6407,47.4924],[9.6504,47.4872],[9.6487,47.4902],[9.6546,47.4925],[9.6619,47.4907],[9.6616,47.4886],[9.6676,47.4864],[9.664,47.4882],[9.6642,47.4917],[9.6625,47.492],[9.6622,47.4912],[9.662,47.4912],[9.6626,47.4922],[9.6664,47.4913],[9.668,47.4916],[9.6621,47.4947],[9.6683,47.4945],[9.665,47.4977],[9.6666,47.503],[9.6549,47.5082],[9.6571,47.5108],[9.6497,47.5155],[9.6477,47.5144],[9.6487,47.5162],[9.6433,47.5248],[9.646,47.526],[9.6517,47.5208],[9.6516,47.5177],[9.6615,47.5134],[9.6607,47.5123],[9.6705,47.5056],[9.6724,47.4989],[9.6787,47.4979],[9.6853,47.5018],[9.6787,47.4973],[9.6787,47.4935],[9.681,47.4919],[9.6878,47.4928],[9.6851,47.4968],[9.6853,47.4999],[9.6861,47.5007],[9.6869,47.4953],[9.6882,47.495],[9.6874,47.4973],[9.6892,47.4972],[9.6875,47.4979],[9.6894,47.4976],[9.6898,47.5003],[9.6849,47.5041],[9.6919,47.5066],[9.728,47.5075],[9.7419,47.5044],[9.7458,47.5056],[9.7463,47.5085],[9.7506,47.5085],[9.7538,47.5151],[9.7508,47.5217],[9.7417,47.5296],[9.7415,47.5282],[9.7366,47.5317],[9.73,47.5336],[9.7289,47.5324],[9.7281,47.5329],[9.7274,47.5346],[9.7317,47.5343],[9.7283,47.5346],[9.723,47.5446],[9.7127,47.5505],[9.7044,47.5488],[9.7011,47.5511],[9.6928,47.5497],[9.6829,47.552],[9.6813,47.5486],[9.6915,47.5482],[9.6862,47.5449],[9.6884,47.544],[9.6809,47.5422],[9.6753,47.5458],[9.6804,47.548],[9.6825,47.5525],[9.6794,47.5568],[9.6536,47.5567],[9.6439,47.5613],[9.6393,47.5668],[9.6293,47.5662],[9.6308,47.5694],[9.6275,47.571],[9.6143,47.5697],[9.6067,47.5735],[9.6074,47.5761],[9.6024,47.5841],[9.5963,47.5883],[9.5726,47.5841],[9.5505,47.5878],[9.5298,47.603],[9.5267,47.6154],[9.518,47.6214],[9.5157,47.6339],[9.4953,47.6498],[9.4878,47.6511],[9.4827,47.6487],[9.4859,47.6519],[9.4821,47.6486],[9.4717,47.6513],[9.4628,47.6484],[9.4523,47.655],[9.4354,47.6566],[9.4209,47.6657],[9.4072,47.6683],[9.3927,47.6682],[9.3873,47.6645],[9.3701,47.6653],[9.3675,47.6621],[9.3653,47.6634],[9.3569,47.6601],[9.3492,47.661],[9.3326,47.6667]]; // OSM outline of the eastern Obersee [lon,lat]
 const PCOL = ['#7fb3c8','#4fc3a1','#c9d85a','#f2a93b','#ef5b4c'];
+let COLORMODE = (()=>{ try{ return localStorage.getItem('wind-color')||'sys'; }catch(e){ return 'sys'; } })();
 const pBin = ms => ms<3.4?0 : ms<5.5?1 : ms<8?2 : ms<12.9?3 : 4;
 const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const W = { on: !REDUCED, cv:null, ctx:null, dpr:1, path:null, grid:null, gw:0, gh:0, step:12, parts:[], raf:null, t:0, moving:false, ready:false };
@@ -633,7 +654,7 @@ function windFrame(){
     const c=W.ctx, t=(W.t+=1/60), d=W.dpr;
     c.globalCompositeOperation='destination-in'; c.fillStyle='rgba(0,0,0,0.86)'; c.fillRect(0,0,W.cv.width,W.cv.height);
     c.globalCompositeOperation='source-over'; c.save(); c.clip(W.path);
-    const bins=[[],[],[],[],[]];
+    const bins={}, bySys=COLORMODE==='sys';
     for(const p of W.parts){
       const f=sample(p.x,p.y); if(!f || ++p.age>p.max){ spawn(p,false); continue; }
       const gx=p.x/d, gy=p.y/d;
@@ -643,57 +664,102 @@ function windFrame(){
       const ux=f.ux*cs - f.uy*sn, uy=f.ux*sn + f.uy*cs, k=(0.3+sp*0.24)*d;
       p.px=p.x; p.py=p.y; p.x+=ux*k; p.y-=uy*k;
       if(!c.isPointInPath(W.path,p.x,p.y)){ spawn(p,false); continue; }
-      bins[pBin(sp)].push(p);
+      const key = bySys ? (SYSCOL[f.dom]||'#7fb3c8') : PCOL[pBin(sp)]; (bins[key]||(bins[key]=[])).push(p);
     }
     c.lineWidth=1.25*d; c.lineCap='round';
-    bins.forEach((b,i)=>{ if(!b.length) return; c.strokeStyle=PCOL[i]; c.globalAlpha=0.75; c.beginPath(); for(const p of b){ c.moveTo(p.px,p.py); c.lineTo(p.x,p.y); } c.stroke(); });
+    for(const [col,b] of Object.entries(bins)){ c.strokeStyle=col; c.globalAlpha=bySys?0.85:0.75; c.beginPath(); for(const p of b){ c.moveTo(p.px,p.py); c.lineTo(p.x,p.y); } c.stroke(); }
     c.globalAlpha=1; c.restore();
   }
   W.raf=requestAnimationFrame(windFrame);
 }
 function windStart(){ if(W.on && !W.raf && W.ready) W.raf=requestAnimationFrame(windFrame); }
 
-// =================== boat ===================
-const BOAT = {placing:false, run:false, lat:0, lon:0, path:[], line:null, mk:null, turned:0, prevH:null, sec:0, n:0, full:false, raf:null};
+// =================== boats ===================
+// Every boat holds a fixed angle to the local wind (sails never touched) and traces its track.
+const BCOL=['#ffffff','#ffd166','#06d6a0','#ff7aa2','#8ecae6'];
+let BOATS=[], BOAT_SEQ=0, PLACING=false, BOAT_RAF=null, BOAT_SEL=null, BOAT_DEF={twa:90, tack:'stbd'};
 function lakeContains(lat, lon){ let inside=false;
   for(let i=0,j=LAKE.length-1;i<LAKE.length;j=i++){ const [xi,yi]=LAKE[i], [xj,yj]=LAKE[j];
     if(((yi>lat)!==(yj>lat)) && (lon < (xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside; } return inside; }
-const boatSvg = h => `<svg width="30" height="30" viewBox="-15 -15 30 30" style="transform:rotate(${h}deg)"><path d="M0 -12 L6 8 L0 5 L-6 8Z" fill="#fff" stroke="#08131a" stroke-width="1.6"/></svg>`;
-const boatInfo = txt => { document.getElementById('boatInfo').innerHTML = txt; };
-function boatClear(){ BOAT.run=false; if(BOAT.raf) cancelAnimationFrame(BOAT.raf); BOAT.raf=null;
-  if(BOAT.line) MAP.removeLayer(BOAT.line); if(BOAT.mk) MAP.removeLayer(BOAT.mk); BOAT.line=BOAT.mk=null; boatInfo(''); }
-function boatStart(lat, lon){
-  boatClear(); Object.assign(BOAT, {run:true, lat, lon, path:[[lat,lon]], turned:0, prevH:null, sec:0, n:0, full:false});
-  BOAT.line = L.polyline(BOAT.path, {color:'#fff', weight:2.5, opacity:0.9, dashArray:'1 6', lineCap:'round', interactive:false}).addTo(MAP);
-  BOAT.mk = L.marker([lat,lon], {icon:L.divIcon({className:'', html:boatSvg(0), iconSize:[30,30], iconAnchor:[15,15]}), interactive:false, zIndexOffset:1000}).addTo(MAP);
-  BOAT.raf = requestAnimationFrame(boatFrame);
+const boatSvg = (h,c) => `<svg width="32" height="32" viewBox="-16 -16 32 32" style="transform:rotate(${h}deg);overflow:visible"><path d="M0 -13 L6.5 9 L0 6 L-6.5 9Z" fill="${c}" stroke="#08131a" stroke-width="1.8"/></svg>`;
+const boatHint = txt => { document.getElementById('boatHint').innerHTML = txt; };
+function boatReset(b, from){
+  if(from) b.start=from;
+  Object.assign(b, {lat:b.start[0], lon:b.start[1], path:[[...b.start]], turned:0, prevH:null, sec:0, n:0, full:false, stop:'', run:true, h:b.h||0});
+  if(b.line) b.line.setLatLngs(b.path); if(b.mk) b.mk.setLatLng(b.start); if(b.st) b.st.setLatLng(b.start);
+}
+function boatAdd(lat, lon){
+  if(BOATS.length>=5) boatRemove(BOATS[0]);
+  const b={id:++BOAT_SEQ, color:BCOL[(BOAT_SEQ-1)%BCOL.length], twa:BOAT_DEF.twa, tack:BOAT_DEF.tack, start:[lat,lon]};
+  boatReset(b);
+  b.line = L.polyline(b.path, {color:b.color, weight:2.5, opacity:0.9, dashArray:'1 6', lineCap:'round', interactive:false}).addTo(MAP);
+  b.st = L.circleMarker(b.start, {radius:4, color:b.color, weight:2, fillOpacity:0.2, interactive:false}).addTo(MAP);
+  b.mk = L.marker(b.start, {icon:L.divIcon({className:'', html:boatSvg(0,b.color), iconSize:[32,32], iconAnchor:[16,16]}), draggable:true, zIndexOffset:1000, title:T().boatName(b.id)}).addTo(MAP);
+  b.mk.on('dragstart', ()=>{ b.drag=true; });
+  b.mk.on('dragend', e=>{ const ll=e.target.getLatLng(); b.drag=false;
+    if(lakeContains(ll.lat, ll.lng)) boatReset(b, [ll.lat, ll.lng]); else { b.mk.setLatLng([b.lat,b.lon]); boatHint(T().notWater); }
+    boatSelect(b.id); boatLoop(); });
+  b.mk.on('click', ()=>boatSelect(b.id));
+  BOATS.push(b); BOAT_SEL=b.id; renderBoats(); boatLoop();
+}
+function boatRemove(b){ [b.line,b.st,b.mk].forEach(l=>l&&MAP.removeLayer(l)); BOATS=BOATS.filter(x=>x!==b); renderBoats(); }
+function boatSelect(id){ BOAT_SEL=id; document.querySelectorAll('.boat').forEach(el=>el.classList.toggle('sel', +el.dataset.id===id));
+  const el=document.querySelector(`.boat[data-id="${id}"]`); if(el) el.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+function boatStep(b){
+  const dt=5;
+  for(let k=0;k<5;k++){
+    const f=currentField(b.lat, b.lon); if(!f){ b.stop=T().nowind; break; }
+    const ws=Math.hypot(f.u,f.v), from=(Math.atan2(-f.u,-f.v)/DEG+360)%360;
+    b.h = b.tack==='stbd' ? from-b.twa : from+b.twa;              // starboard tack: wind over the right side
+    if(b.prevH!=null) b.turned += ((b.h-b.prevH+540)%360)-180; b.prevH=b.h;
+    const d=clamp(0.45*ws, 0.3, 4.5)*dt;                          // simple polar: ~45 % of wind speed
+    b.lat += d*Math.cos(b.h*DEG)/111200; b.lon += d*Math.sin(b.h*DEG)/(111200*Math.cos(b.lat*DEG)); b.sec += dt;
+    if(!lakeContains(b.lat, b.lon)){ b.stop=T().shore; break; }
+  }
+  b.path.push([b.lat,b.lon]); b.n++;
+  if(b.n%2===0) b.line.setLatLngs(b.path);
+  b.mk.setLatLng([b.lat,b.lon]); const el=b.mk.getElement(); if(el && el.firstChild) el.firstChild.style.transform=`rotate(${b.h}deg)`;
+  if(Math.abs(b.turned)>=360) b.full=true;
+  if(b.stop || Math.abs(b.turned)>=720 || b.n>6000){ if(!b.stop && Math.abs(b.turned)>=720) b.stop=T().limit; b.run=false; b.line.setLatLngs(b.path); }
 }
 function boatFrame(){
-  BOAT.raf=null; if(!BOAT.run) return;
-  const twa=+document.getElementById('twa').value, tack=document.getElementById('tack').value==='stbd'?1:-1, dt=5;
-  let h=BOAT.prevH||0, stop='';
-  for(let k=0;k<5;k++){
-    const f=currentField(BOAT.lat, BOAT.lon); if(!f){ stop=T().nowind; break; }
-    const ws=Math.hypot(f.u,f.v), from=(Math.atan2(-f.u,-f.v)/DEG+360)%360;
-    h = tack>0 ? from-twa : from+twa;                           // starboard tack: wind over the right side
-    if(BOAT.prevH!=null) BOAT.turned += ((h-BOAT.prevH+540)%360)-180; BOAT.prevH=h;
-    const d=clamp(0.45*ws, 0.3, 4.5)*dt;                         // simple polar: ~45 % of wind speed
-    BOAT.lat += d*Math.cos(h*DEG)/111200; BOAT.lon += d*Math.sin(h*DEG)/(111200*Math.cos(BOAT.lat*DEG)); BOAT.sec += dt;
-    if(!lakeContains(BOAT.lat, BOAT.lon)){ stop=T().shore; break; }
-  }
-  BOAT.path.push([BOAT.lat,BOAT.lon]); BOAT.n++;
-  if(BOAT.n%2===0) BOAT.line.setLatLngs(BOAT.path);
-  BOAT.mk.setLatLng([BOAT.lat,BOAT.lon]); const el=BOAT.mk.getElement(); if(el && el.firstChild) el.firstChild.style.transform=`rotate(${h}deg)`;
-  const turned=Math.abs(BOAT.turned); if(turned>=360) BOAT.full=true;
-  const tt=`${Math.floor(BOAT.sec/3600)} h ${String(Math.floor(BOAT.sec/60)%60).padStart(2,'0')} min`;
-  boatInfo(T().boatInfo(twa, tack>0?T().stbd:T().port, Math.round(turned), tt, BOAT.full, stop));
-  if(stop || turned>=720 || BOAT.n>6000){ BOAT.run=false; BOAT.line.setLatLngs(BOAT.path); return; }
-  BOAT.raf=requestAnimationFrame(boatFrame);
+  BOAT_RAF=null; let any=false;
+  for(const b of BOATS){ if(b.run && !b.drag){ boatStep(b); any=true; } }
+  if(any && (BOATS[0].n%3===0 || BOATS.some(b=>!b.run))) BOATS.forEach(boatInfoUpdate);
+  if(any) BOAT_RAF=requestAnimationFrame(boatFrame); else BOATS.forEach(boatInfoUpdate);
+}
+function boatLoop(){ if(!BOAT_RAF) BOAT_RAF=requestAnimationFrame(boatFrame); }
+function boatInfoUpdate(b){
+  const el=document.querySelector(`.boat[data-id="${b.id}"]`); if(!el) return;
+  const tt=`${Math.floor(b.sec/3600)} h ${String(Math.floor(b.sec/60)%60).padStart(2,'0')} min`;
+  el.querySelector('.info').innerHTML = T().boatInfo(Math.round(Math.abs(b.turned)), tt, b.full, b.stop);
+  el.querySelector('.play').textContent = b.run ? '❚❚' : '▶';
+}
+function renderBoats(){
+  const box=document.getElementById('boats'); if(!box) return;
+  boatHint(PLACING ? T().placing : (BOATS.length ? '' : T().boatHint));
+  box.innerHTML = BOATS.map(b=>`<div class="boat ${b.id===BOAT_SEL?'sel':''}" data-id="${b.id}" style="--c:${b.color}">
+      <div class="bh"><span class="dot"></span><b>${T().boatName(b.id)}</b>
+        <select class="btn twa" aria-label="TWA">${Object.entries(T().twa).map(([k,l])=>`<option value="${k}" ${+k===b.twa?'selected':''}>${l}</option>`).join('')}</select>
+        <div class="seg tk"><button data-t="stbd" class="${b.tack==='stbd'?'on':''}" title="${T().stbd}">${T().stbS}</button><button data-t="port" class="${b.tack==='port'?'on':''}" title="${T().port}">${T().portS}</button></div>
+        <button class="ib play" title="${T().play}"></button><button class="ib rst" title="${T().restart}">↺</button><button class="ib del" title="${T().remove}">✕</button>
+      </div><div class="note info"></div></div>`).join('');
+  box.querySelectorAll('.boat').forEach(el=>{
+    const b=BOATS.find(x=>x.id===+el.dataset.id);
+    const changed=()=>{ BOAT_DEF={twa:b.twa, tack:b.tack}; b.turned=0; b.sec=0; b.full=false; if(b.stop===T().limit) b.stop=''; if(!b.stop) b.run=true; boatLoop(); boatInfoUpdate(b); };
+    el.querySelector('.twa').onchange=e=>{ b.twa=+e.target.value; changed(); };
+    el.querySelectorAll('.tk button').forEach(t=>t.onclick=()=>{ b.tack=t.dataset.t; el.querySelectorAll('.tk button').forEach(x=>x.classList.toggle('on',x===t)); changed(); });
+    el.querySelector('.play').onclick=()=>{ if(b.run) b.run=false; else { if(b.stop===T().shore||b.stop===T().nowind) boatReset(b); else { b.stop=''; if(Math.abs(b.turned)>=720){ b.turned=0; b.sec=0; b.full=false; } b.run=true; } boatLoop(); } boatInfoUpdate(b); };
+    el.querySelector('.rst').onclick=()=>{ boatReset(b); boatLoop(); boatInfoUpdate(b); };
+    el.querySelector('.del').onclick=()=>boatRemove(b);
+    el.onclick=e=>{ if(e.target===el||e.target.closest('.info')) boatSelect(b.id); };
+    boatInfoUpdate(b);
+  });
 }
 function boatClick(e){
-  if(!BOAT.placing) return; BOAT.placing=false; MAP.getContainer().style.cursor='';
-  if(!lakeContains(e.latlng.lat, e.latlng.lng)){ boatInfo(T().notWater); return; }
-  boatStart(e.latlng.lat, e.latlng.lng);
+  if(!PLACING) return; PLACING=false; MAP.getContainer().style.cursor='';
+  if(!lakeContains(e.latlng.lat, e.latlng.lng)){ boatHint(T().notWater); return; }
+  boatAdd(e.latlng.lat, e.latlng.lng);
 }
 
 // =================== wiring ===================
@@ -708,8 +774,7 @@ document.querySelectorAll('#units button').forEach(b=>{ b.onclick=()=>{ UNIT=b.d
 document.querySelectorAll('#lang button').forEach(b=> b.onclick=()=>{ LANG=b.dataset.l; try{localStorage.setItem('wind-lang',LANG)}catch(e){} applyLang(); });
 document.getElementById('animToggle').onclick=()=>{ W.on=!W.on; syncAnimBtn(); if(W.on) windStart(); else { cancelAnimationFrame(W.raf); W.raf=null; W.ctx&&W.ctx.clearRect(0,0,W.cv.width,W.cv.height); } };
 document.getElementById('reload').onclick = loadAll;
-document.getElementById('boatBtn').onclick=()=>{ BOAT.placing=true; if(MAP) MAP.getContainer().style.cursor='crosshair'; boatInfo(T().placing); };
-document.getElementById('boatClear').onclick=boatClear;
+document.getElementById('boatAdd').onclick=()=>{ PLACING=true; if(MAP) MAP.getContainer().style.cursor='crosshair'; boatHint(T().placing); };
 applyLang(); loadAll(); setInterval(loadAll, 5*60e3);
 </script>
 </body>
