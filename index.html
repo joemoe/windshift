@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lake Constance East – Live Wind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1620; --panel:#112230; --panel2:#16303f; --line:#21414f;
+    --ink:#e8f1f5; --mute:#8aa6b3; --water:#123a52; --land:#0e1d27; --shore:#2f6a86;
+    --b0:#7fb3c8; --b1:#4fc3a1; --b2:#c9d85a; --b3:#f2a93b; --b4:#ef5b4c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
+  h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.01em}
+  .sub{color:var(--mute);font-size:13px;margin-top:4px}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{background:none;border:0;color:var(--mute);padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+  .seg button.on{background:var(--panel2);color:var(--ink);font-weight:600}
+  .btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+  .grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+  @media (max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+  .map{padding:10px;position:relative}
+  #map{width:100%;height:520px;border-radius:10px;background:var(--water)}
+  @media (max-width:860px){#map{height:420px}}
+  .leaflet-container{font-family:Inter,sans-serif}
+  .leaflet-control-attribution{background:rgba(11,22,32,.75)!important;color:var(--mute)!important}
+  .leaflet-control-attribution a{color:var(--b0)!important}
+  .wm{display:flex;flex-direction:column;align-items:center;pointer-events:auto}
+  .wm .lbl{background:rgba(11,22,32,.82);border:1px solid var(--line);border-radius:8px;padding:3px 7px;text-align:center;white-space:nowrap;line-height:1.25}
+  .wm .lbl b{font-size:12px;display:block}
+  .wm .lbl span{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .maplabel{font-size:11px;fill:var(--mute)}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mute);padding:4px 8px 6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .list{display:flex;flex-direction:column;gap:12px}
+  .st{padding:14px 16px;display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center}
+  .rose{width:64px;height:64px}
+  .st h3{margin:0;font-size:15px;font-weight:600}
+  .st .src{font-size:11px;color:var(--mute);margin-top:2px}
+  .st .big{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500;text-align:right;line-height:1}
+  .st .big small{font-size:12px;color:var(--mute);font-family:Inter,sans-serif;margin-left:3px}
+  .st .meta{font-size:12px;color:var(--mute);text-align:right;margin-top:5px}
+  .st .spark{grid-column:1 / -1;width:100%;height:44px}
+  .bft{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;color:#08131a;margin-top:6px}
+  .stale{opacity:.55}
+  .err{color:var(--b4);font-size:12px}
+  .summary{padding:14px 16px;margin-bottom:16px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .summary .k{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .summary .v{font-size:18px;font-weight:600;margin-top:2px}
+  .warn{padding:6px 10px;border-radius:8px;font-size:13px;font-weight:600}
+  footer{color:var(--mute);font-size:12px;margin-top:22px;line-height:1.6}
+  footer a{color:var(--b0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Live wind – eastern Lake Constance</h1>
+      <div class="sub" id="updated">Loading observations …</div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="units">
+        <button data-u="kn" class="on">kn</button>
+        <button data-u="kmh">km/h</button>
+        <button data-u="ms">m/s</button>
+      </div>
+      <button class="btn" id="reload">Refresh</button>
+    </div>
+  </header>
+
+  <div class="card summary" id="summary"></div>
+
+  <div class="grid">
+    <div class="card map">
+      <div id="map" role="img" aria-label="Map of eastern Lake Constance with wind arrows"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+
+  <footer>
+    Data sources: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data),
+    <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>,
+    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. Refreshes automatically every 5 minutes.<br>
+    Prototype – not an official storm warning. Always follow the storm warning lights around the lake.
+  </footer>
+</div>
+
+<script>
+const STATIONS = [
+  {id:'lindau',    name:'Lindau',     src:'DWD · Lindau (SWN)',       lat:47.540, lon:9.684, dx:-55, dy:-31},
+  {id:'bregenz',   name:'Bregenz',    src:'GeoSphere · TAWES 11101',  lat:47.499, lon:9.746, gs:'11101', dx:-68, dy:-51},
+  {id:'rohrspitz', name:'Rohrspitz',  src:'GeoSphere · TAWES 11299',  lat:47.497, lon:9.630, gs:'11299', dx:-10, dy:-99},
+  {id:'altenrhein',name:'Altenrhein', src:'MeteoSwiss · ARH',       lat:47.485, lon:9.566, dx:-40, dy:-110},
+];
+
+let UNIT = (()=>{try{return localStorage.getItem('wind-unit')||'kn'}catch(e){return 'kn'}})();
+const CONV = {kn:1.94384, kmh:3.6, ms:1};
+const ULABEL = {kn:'kn', kmh:'km/h', ms:'m/s'};
+const fmt = ms => ms==null||isNaN(ms) ? '–' : (ms*CONV[UNIT]).toFixed(UNIT==='ms'?1:0);
+const BFT = [0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7];
+const bft = ms => { let b=0; while(b<BFT.length && ms>=BFT[b]) b++; return b; };
+const color = ms => ms==null ? '#566' : ms<3.4 ? 'var(--b0)' : ms<5.5 ? 'var(--b1)' : ms<8 ? 'var(--b2)' : ms<12.9 ? 'var(--b3)' : 'var(--b4)';
+const DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+const dirName = d => d==null ? '–' : DIRS[Math.round(d/22.5)%16];
+const hhmm = t => t ? t.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '–';
+
+// ---------- Data sources ----------
+async function loadGeoSphere(){
+  const end = new Date(), start = new Date(end - 3*3600e3);
+  const iso = d => d.toISOString().slice(0,16);
+  const ids = STATIONS.filter(s=>s.gs).map(s=>s.gs).join(',');
+  const url = `https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min?parameters=DD,FF,FFX&station_ids=${ids}&start=${iso(start)}&end=${iso(end)}`;
+  const j = await fetch(url).then(r=>{ if(!r.ok) throw new Error('GeoSphere '+r.status); return r.json(); });
+  const ts = j.timestamps.map(t=>new Date(t));
+  const out = {};
+  for(const f of j.features){
+    const p = f.properties.parameters;
+    out[f.properties.station] = ts.map((t,i)=>({t, dd:p.DD.data[i], ff:p.FF.data[i], fx:p.FFX.data[i]})).filter(r=>r.ff!=null);
+  }
+  return out;
+}
+async function loadMeteoSwiss(){
+  const txt = await fetch('https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/arh/ogd-smn_arh_t_now.csv').then(r=>{ if(!r.ok) throw new Error('MeteoSwiss '+r.status); return r.text(); });
+  const lines = txt.trim().split(/\r?\n/); const h = lines[0].split(';');
+  const iT=h.indexOf('reference_timestamp'), iF=h.indexOf('fkl010z0'), iD=h.indexOf('dkl010z0'), iX=h.indexOf('fkl010z1');
+  const num = v => v===''||v==null ? null : +v;
+  const rows = lines.slice(1).map(l=>{ const c=l.split(';'); const [d,m,y_t]=c[iT].split('.'); const [y,t]=y_t.split(' ');
+    return {t:new Date(`${y}-${m}-${d}T${t}:00Z`), ff:num(c[iF]), dd:num(c[iD]), fx:num(c[iX])}; }).filter(r=>r.ff!=null);
+  const cut = Date.now()-3*3600e3;
+  return rows.filter(r=>r.t>=cut);
+}
+async function loadDWD(){
+  const j = await fetch('https://api.brightsky.dev/current_weather?dwd_station_id=06102').then(r=>{ if(!r.ok) throw new Error('DWD '+r.status); return r.json(); });
+  const w = j.weather; const k = v => v==null ? null : v/3.6; // Bright Sky returns km/h
+  return [{t:new Date(w.timestamp), ff:k(w.wind_speed_10), dd:w.wind_direction_10, fx:k(w.wind_gust_speed_10)}];
+}
+
+let DATA = {}, ERR = {};
+async function loadAll(){
+  document.getElementById('updated').textContent = 'Loading observations …';
+  const [gs, ms, dwd] = await Promise.allSettled([loadGeoSphere(), loadMeteoSwiss(), loadDWD()]);
+  DATA = {}; ERR = {};
+  if(gs.status==='fulfilled'){ DATA.bregenz=gs.value['11101']||[]; DATA.rohrspitz=gs.value['11299']||[]; } else { ERR.bregenz=ERR.rohrspitz=gs.reason.message; }
+  if(ms.status==='fulfilled') DATA.altenrhein=ms.value; else ERR.altenrhein=ms.reason.message;
+  if(dwd.status==='fulfilled'){
+    // Lindau: build a small history in the browser
+    let hist=[]; try{ hist=JSON.parse(localStorage.getItem('wind-lindau')||'[]').map(r=>({...r,t:new Date(r.t)})); }catch(e){}
+    const cur = dwd.value[0];
+    if(!hist.length || +hist[hist.length-1].t !== +cur.t) hist.push(cur);
+    hist = hist.filter(r=>r.t>=Date.now()-3*3600e3);
+    try{ localStorage.setItem('wind-lindau', JSON.stringify(hist)); }catch(e){}
+    DATA.lindau = hist;
+  } else ERR.lindau=dwd.reason.message;
+  document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + ' · 10-minute values, last 3 hours';
+  render();
+}
+
+// ---------- Rendering ----------
+function arrow(cx,cy,dd,ms,scale=1){
+  if(dd==null||ms==null) return `<circle cx="${cx}" cy="${cy}" r="8" fill="#566"/>`;
+  const len = (26 + Math.min(ms,15)*4.5)*scale, rot = dd+180; // points where the wind is blowing to
+  return `<g transform="translate(${cx},${cy}) rotate(${rot})">
+    <line x1="0" y1="${-len/2}" x2="0" y2="${len/2-10*scale}" stroke="${color(ms)}" stroke-width="${7*scale}" stroke-linecap="round"/>
+    <path d="M0 ${len/2+4*scale} L${-11*scale} ${len/2-14*scale} L${11*scale} ${len/2-14*scale}Z" fill="${color(ms)}"/></g>`;
+}
+let MAP, MARKERS = {};
+function initMap(){
+  if(MAP || !window.L) return;
+  MAP = L.map('map', {zoomControl:true, scrollWheelZoom:false, attributionControl:true}).setView([47.515, 9.66], 11);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom:16,
+    attribution:'Tiles &copy; Esri — Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(MAP);
+  MAP.fitBounds(L.latLngBounds(STATIONS.map(s=>[s.lat,s.lon])).pad(0.35));
+}
+function markerHtml(st, last){
+  const a = last ? `<svg width="56" height="56" viewBox="-28 -28 56 56" style="overflow:visible">${arrow(0,0,last.dd,last.ff,0.75)}</svg>`
+                 : `<svg width="56" height="56" viewBox="-28 -28 56 56" style="overflow:visible"><circle r="6" fill="#566"/></svg>`;
+  return `<div class="wm"><div class="lbl"><b>${st.name}</b><span>${last?fmt(last.ff)+' / '+fmt(last.fx):'–'} ${ULABEL[UNIT]}</span></div>${a}</div>`;
+}
+function renderMap(){
+  initMap(); if(!MAP) return;
+  for(const st of STATIONS){
+    const last=(DATA[st.id]||[]).slice(-1)[0];
+    const icon = L.divIcon({className:'', html:markerHtml(st,last), iconSize:[110,100], iconAnchor:[55,72]});
+    if(MARKERS[st.id]) MARKERS[st.id].setIcon(icon);
+    else MARKERS[st.id] = L.marker([st.lat, st.lon], {icon, keyboard:false}).addTo(MAP)
+      .bindTooltip(`${st.src}${last?' · '+hhmm(last.t):''}`, {direction:'bottom', offset:[0,8]});
+  }
+  document.getElementById('legend').innerHTML = [['var(--b0)','< 3 Bft'],['var(--b1)','3 Bft'],['var(--b2)','4 Bft'],['var(--b3)','5–6 Bft'],['var(--b4)','≥ 7 Bft']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + '<span style="margin-left:auto">Arrow points where the wind is blowing to</span>';
+}
+function spark(rows){
+  if(rows.length<2) return `<svg class="spark" viewBox="0 0 300 44"><text x="0" y="28" class="maplabel">Building history …</text></svg>`;
+  const t0=Date.now()-3*3600e3, t1=Date.now(), max=Math.max(4,...rows.map(r=>r.fx??r.ff));
+  const X=t=>((t-t0)/(t1-t0))*300, Y=v=>42-(v/max)*38;
+  const line=k=>rows.filter(r=>r[k]!=null).map((r,i)=>(i?'L':'M')+X(r.t).toFixed(1)+' '+Y(r[k]).toFixed(1)).join('');
+  const area = line('ff')+` L${X(rows[rows.length-1].t).toFixed(1)} 42 L${X(rows[0].t).toFixed(1)} 42Z`;
+  return `<svg class="spark" viewBox="0 0 300 44" preserveAspectRatio="none">
+    <path d="${area}" fill="${color(rows[rows.length-1].ff)}" opacity=".18"/>
+    <path d="${line('fx')}" fill="none" stroke="var(--mute)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>
+    <path d="${line('ff')}" fill="none" stroke="${color(rows[rows.length-1].ff)}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function rose(dd,ms){
+  let ticks=''; for(let i=0;i<8;i++) ticks+=`<line x1="32" y1="4" x2="32" y2="${i%2?8:11}" stroke="var(--line)" stroke-width="2" transform="rotate(${i*45} 32 32)"/>`;
+  return `<svg class="rose" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="var(--panel2)" stroke="var(--line)"/>${ticks}
+    <text x="32" y="20" text-anchor="middle" font-size="8" fill="var(--mute)">N</text>${arrow(32,34,dd,ms,.55)}</svg>`;
+}
+function renderList(){
+  let h='';
+  for(const st of STATIONS){
+    const rows=DATA[st.id]||[], last=rows.slice(-1)[0];
+    const stale = last && (Date.now()-last.t > 40*60e3);
+    const b = last ? bft(last.ff) : null;
+    h += `<div class="card st ${stale?'stale':''}">
+      ${rose(last?.dd,last?.ff)}
+      <div><h3>${st.name}</h3><div class="src">${st.src}</div>
+        ${last?`<span class="bft" style="background:${color(last.ff)}">${b} Bft · ${dirName(last.dd)} ${last.dd??''}°</span>`:''}
+        ${ERR[st.id]?`<div class="err">No data: ${ERR[st.id]}</div>`:''}</div>
+      <div><div class="big">${last?fmt(last.ff):'–'}<small>${ULABEL[UNIT]}</small></div>
+        <div class="meta">Gust ${last?fmt(last.fx):'–'} · ${hhmm(last?.t)}${stale?' (stale)':''}</div></div>
+      ${spark(rows)}</div>`;
+  }
+  document.getElementById('list').innerHTML = h;
+}
+function renderSummary(){
+  const lasts = STATIONS.map(s=>(DATA[s.id]||[]).slice(-1)[0]).filter(Boolean);
+  if(!lasts.length){ document.getElementById('summary').innerHTML='<span class="err">No observations available.</span>'; return; }
+  const avg = lasts.reduce((a,r)=>a+r.ff,0)/lasts.length;
+  const gmax = Math.max(...lasts.map(r=>r.fx??r.ff));
+  // vector-mean direction
+  let sx=0, sy=0; lasts.forEach(r=>{ if(r.dd!=null){ sx+=Math.sin(r.dd*Math.PI/180)*r.ff; sy+=Math.cos(r.dd*Math.PI/180)*r.ff; }});
+  const md = (Math.atan2(sx,sy)*180/Math.PI+360)%360;
+  const kn = gmax*1.94384;
+  const w = kn>=34 ? ['Gusts at storm level (≥ 34 kn)','var(--b4)'] : kn>=25 ? ['Gusts at strong-wind level (≥ 25 kn)','var(--b3)'] : ['Below strong-wind level','var(--b1)'];
+  document.getElementById('summary').innerHTML = `
+    <div><div class="k">Average</div><div class="v">${fmt(avg)} ${ULABEL[UNIT]} · ${bft(avg)} Bft</div></div>
+    <div><div class="k">Direction</div><div class="v">${dirName(md)} (${Math.round(md)}°)</div></div>
+    <div><div class="k">Strongest gust</div><div class="v">${fmt(gmax)} ${ULABEL[UNIT]}</div></div>
+    <div class="warn" style="background:${w[1]};color:#08131a">${w[0]}</div>`;
+}
+function render(){ renderSummary(); renderMap(); renderList(); }
+
+document.querySelectorAll('#units button').forEach(b=>{
+  b.classList.toggle('on', b.dataset.u===UNIT);
+  b.onclick=()=>{ UNIT=b.dataset.u; try{localStorage.setItem('wind-unit',UNIT)}catch(e){}
+    document.querySelectorAll('#units button').forEach(x=>x.classList.toggle('on',x===b)); render(); };
+});
+document.getElementById('reload').onclick = loadAll;
+render(); loadAll(); setInterval(loadAll, 5*60e3);
+</script>
+</body>
+</html>
