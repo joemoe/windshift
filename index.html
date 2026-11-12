@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Windshift – live wind, eastern Lake Constance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -11,305 +11,266 @@
 <style>
   :root{
     --bg:#0b1620; --panel:#112230; --panel2:#16303f; --line:#21414f;
-    --ink:#e8f1f5; --mute:#8aa6b3; --water:#123a52; --land:#0e1d27; --shore:#2f6a86;
+    --ink:#e8f1f5; --mute:#8aa6b3; --water:#123a52;
     --b0:#7fb3c8; --b1:#4fc3a1; --b2:#c9d85a; --b3:#f2a93b; --b4:#ef5b4c;
+    --side:400px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
-  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
-  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
-  h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.01em}
-  .sub{color:var(--mute);font-size:13px;margin-top:4px}
-  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .seg button{background:none;border:0;color:var(--mute);padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:13px}
+  body{overflow:hidden}
+  .app{height:100vh;height:100dvh;display:grid;grid-template-rows:auto 1fr;padding-top:env(safe-area-inset-top)}
+  header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:700;white-space:nowrap}
+  header .sub{color:var(--mute);font-size:12px;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{background:none;border:0;color:var(--mute);padding:5px 9px;font:inherit;font-size:12px;cursor:pointer}
   .seg button.on{background:var(--panel2);color:var(--ink);font-weight:600}
+  .btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;cursor:pointer}
   .btn.on{border-color:var(--b1)}
-  .btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
-  .grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
-  @media (max-width:860px){.grid{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
-  .map{padding:10px;position:relative}
-  #map{width:100%;height:520px;border-radius:10px;background:var(--water)}
-  @media (max-width:860px){#map{height:420px}}
-  .leaflet-container{font-family:Inter,sans-serif}
-  .leaflet-control-attribution{background:rgba(11,22,32,.75)!important;color:var(--mute)!important}
-  .leaflet-control-attribution a{color:var(--b0)!important}
-  .wm{display:flex;flex-direction:column;align-items:center;pointer-events:auto}
-  .wm .lbl{background:rgba(11,22,32,.82);border:1px solid var(--line);border-radius:8px;padding:3px 7px;text-align:center;white-space:nowrap;line-height:1.25}
-  .wm .lbl b{font-size:12px;display:block}
-  .wm .lbl span{font-family:'JetBrains Mono',monospace;font-size:12px}
-  .maplabel{font-size:11px;fill:var(--mute)}
-  .sim{border-top:1px solid var(--line);margin-top:6px;padding:10px 8px 4px}
-  .simhead,.boatbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .boatbar{margin-top:10px}
   select.btn{appearance:auto;max-width:100%}
-  .note{font-size:12px;color:var(--mute);margin-top:6px;line-height:1.45}
+  main{display:grid;grid-template-columns:1fr var(--side);min-height:0}
+  .mapwrap{position:relative;min-height:0}
+  #map{position:absolute;inset:0;background:var(--water)}
+  aside{overflow-y:auto;border-left:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  @media (orientation:portrait), (max-width:820px){
+    body{overflow:auto}
+    .app{height:auto;min-height:100dvh}
+    main{grid-template-columns:1fr}
+    .mapwrap{height:58vh;height:58svh}
+    aside{border-left:0;overflow:visible}
+    header .sub{flex-basis:100%;order:9}
+  }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute);margin:0 0 6px;font-weight:600;display:flex;align-items:center;gap:8px}
+  h2 .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400}
+  /* summary */
+  .summary{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .summary .k{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .summary .v{font-size:14px;font-weight:600}
+  .warn{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;color:#08131a;margin-left:auto}
+  /* stations */
+  .st{display:grid;grid-template-columns:30px 1fr 84px 66px;gap:8px;align-items:center;padding:4px 0;border-top:1px solid var(--line)}
+  .st:first-of-type{border-top:0}
+  .st .nm b{font-size:13px;display:block}
+  .st .nm span{font-size:10px;color:var(--mute)}
+  .st .val{text-align:right;font-family:'JetBrains Mono',monospace;font-size:16px;line-height:1.1}
+  .st .val small{display:block;font-size:10px;color:var(--mute);font-family:Inter,sans-serif}
+  .st svg.spark{width:84px;height:26px}
+  .st.stale{opacity:.5}
+  .err{color:var(--b4);font-size:11px}
+  .mini{width:30px;height:30px}
+  /* model */
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .note{font-size:11px;color:var(--mute);margin-top:6px;line-height:1.4}
   .note b{color:var(--ink)} .note .ok{color:var(--b1)}
-  .why{margin:10px 0 4px;font-size:13px;line-height:1.5}
-  .why summary{cursor:pointer;font-weight:600;color:var(--b1)}
-  .why p{margin:8px 0;color:var(--ink)} .why .muted{color:var(--mute);font-size:12px}
-  .sliders{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-  @media (max-width:560px){.sliders{grid-template-columns:1fr}}
-  .sl{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;opacity:.75}
-  .sl.active{opacity:1;border-color:var(--b0)}
-  .slh{display:flex;justify-content:space-between;gap:8px;font-size:12px}
-  .slv{font-family:'JetBrains Mono',monospace;color:var(--mute);white-space:nowrap}
-  .sl input{width:100%;accent-color:var(--b1);margin:6px 0 2px}
-  .dirrow{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mute)}
-  .dirrow input{flex:1;margin:4px 0}
-  .dirrow b{font-family:'JetBrains Mono',monospace;color:var(--ink);font-weight:500;min-width:62px;text-align:right}
-  .hint{font-size:11px;color:var(--b2);margin-top:2px;line-height:1.4}
-  .sl .ends{display:flex;justify-content:space-between;font-size:10px;color:var(--mute)}
-  .sl p{font-size:11px;color:var(--mute);margin:4px 0 0;line-height:1.4}
-  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mute);padding:4px 8px 6px}
-  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-  .list{display:flex;flex-direction:column;gap:12px}
-  .st{padding:14px 16px;display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center}
-  .rose{width:64px;height:64px}
-  .st h3{margin:0;font-size:15px;font-weight:600}
-  .st .src{font-size:11px;color:var(--mute);margin-top:2px}
-  .st .big{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500;text-align:right;line-height:1}
-  .st .big small{font-size:12px;color:var(--mute);font-family:Inter,sans-serif;margin-left:3px}
-  .st .meta{font-size:12px;color:var(--mute);text-align:right;margin-top:5px}
-  .st .spark{grid-column:1 / -1;width:100%;height:44px}
-  .bft{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;color:#08131a;margin-top:6px}
-  .stale{opacity:.55}
-  .err{color:var(--b4);font-size:12px}
-  .summary{padding:14px 16px;margin-bottom:16px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
-  .summary .k{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
-  .summary .v{font-size:18px;font-weight:600;margin-top:2px}
-  .warn{padding:6px 10px;border-radius:8px;font-size:13px;font-weight:600}
-  footer{color:var(--mute);font-size:12px;margin-top:22px;line-height:1.6}
-  footer a{color:var(--b0)}
+  .sys{display:grid;grid-template-columns:10px 1fr 18px;gap:2px 6px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
+  .sys:first-of-type{border-top:0}
+  .sys .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+  .sys .nm{font-size:12px;display:flex;gap:6px;align-items:baseline;min-width:0}
+  .sys .nm b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sys .nm span{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mute);white-space:nowrap}
+  .sys .i{width:18px;height:18px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);font:600 11px Inter,sans-serif;cursor:pointer;padding:0}
+  .sys input[type=range]{grid-column:2 / 4;width:100%;margin:0;accent-color:var(--c);height:18px}
+  .sys .ends{grid-column:2 / 4;display:flex;justify-content:space-between;font-size:9px;color:var(--mute);margin-top:-2px}
+  .sys .dirrow{grid-column:2 / 4;display:flex;align-items:center;gap:6px;font-size:10px;color:var(--mute)}
+  .sys .dirrow input{flex:1}
+  .sys .dirrow b{font-family:'JetBrains Mono',monospace;color:var(--ink);font-weight:500;min-width:58px;text-align:right}
+  .sys .hint{grid-column:2 / 4;font-size:10px;color:var(--b2);line-height:1.35}
+  .sys .why{grid-column:2 / 4;font-size:11px;color:var(--mute);line-height:1.4;display:none;background:var(--panel2);border-radius:6px;padding:6px 8px;margin-top:2px}
+  .sys.open .why{display:block}
+  .sys.off{opacity:.6}
+  details.about{font-size:11px;color:var(--mute);line-height:1.5}
+  details.about summary{cursor:pointer}
+  details.about a{color:var(--b0)}
+  /* map overlays */
+  .leaflet-container{font-family:Inter,sans-serif}
+  .leaflet-control-attribution{background:rgba(11,22,32,.75)!important;color:var(--mute)!important;font-size:9px!important}
+  .leaflet-control-attribution a{color:var(--b0)!important}
+  .wm{display:flex;flex-direction:column;align-items:center}
+  .wm .lbl{background:rgba(11,22,32,.85);border:1px solid var(--line);border-radius:7px;padding:2px 6px;text-align:center;white-space:nowrap;line-height:1.2}
+  .wm .lbl b{font-size:11px;display:block}
+  .wm .lbl span{font-family:'JetBrains Mono',monospace;font-size:11px}
+  .chip{display:inline-flex;align-items:center;gap:4px;background:rgba(11,22,32,.82);border:1.5px solid var(--c);border-radius:20px;padding:2px 7px 2px 3px;font-size:10px;white-space:nowrap;color:var(--ink);transform:translate(-50%,-50%);cursor:pointer}
+  .chip svg{flex:none}
+  .chip i{font-style:normal;font-family:'JetBrains Mono',monospace;color:var(--c)}
+  .ovl{background:rgba(11,22,32,.85);border:1px solid var(--line);border-radius:10px;padding:6px 8px;color:var(--ink);font-size:11px}
+  .ovl .t{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+  .legend span{display:inline-flex;align-items:center;gap:3px;margin-right:6px;white-space:nowrap}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:2px}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
   <header>
-    <div>
-      <h1>Windshift <span style="font-weight:400;color:var(--mute)">· live wind, eastern Lake Constance</span></h1>
-      <div class="sub" id="updated">Loading observations …</div>
-    </div>
-    <div class="controls">
-      <div class="seg" id="units">
-        <button data-u="kn" class="on">kn</button>
-        <button data-u="kmh">km/h</button>
-        <button data-u="ms">m/s</button>
-      </div>
-      <button class="btn" id="animToggle">Animation: on</button>
-      <button class="btn" id="reload">Refresh</button>
-    </div>
+    <h1>Windshift</h1>
+    <div class="sub" id="updated"></div>
+    <div class="seg" id="units"><button data-u="kn">kn</button><button data-u="kmh">km/h</button><button data-u="ms">m/s</button></div>
+    <div class="seg" id="lang"><button data-l="de">DE</button><button data-l="en">EN</button></div>
+    <button class="btn" id="animToggle"></button>
+    <button class="btn" id="reload" aria-label="Refresh">↻</button>
   </header>
-
-  <div class="card summary" id="summary"></div>
-
-  <div class="grid">
-    <div class="card map">
-      <div id="map" role="img" aria-label="Map of eastern Lake Constance with wind arrows"></div>
-      <div class="legend" id="legend"></div>
-      <div class="sim">
-        <div class="simhead">
-          <div class="seg" id="mode"><button data-m="live" class="on">Live (fitted)</button><button data-m="sim">Simulator</button></div>
-          <select id="preset" class="btn" aria-label="Scenario"></select>
+  <main>
+    <div class="mapwrap"><div id="map"></div></div>
+    <aside>
+      <div class="card"><div class="summary" id="summary"></div></div>
+      <div class="card"><h2><span data-i18n="stations"></span><span class="r" data-i18n="last3h"></span></h2><div id="list"></div></div>
+      <div class="card">
+        <h2 data-i18n="systems"></h2>
+        <div class="row">
+          <div class="seg" id="mode"><button data-m="live"></button><button data-m="sim"></button></div>
+          <select id="preset" class="btn" aria-label="Scenario" style="flex:1"></select>
         </div>
         <div class="note" id="modeNote"></div>
-        <div class="boatbar">
-          <button class="btn" id="boatBtn">⛵ Drop a boat</button>
-          <select id="twa" class="btn" aria-label="Angle to the wind">
-            <option value="45">45° close-hauled</option><option value="60">60° close reach</option>
-            <option value="90" selected>90° beam reach</option><option value="120">120° broad reach</option><option value="160">160° running</option>
-          </select>
-          <select id="tack" class="btn" aria-label="Tack"><option value="stbd">starboard tack</option><option value="port">port tack</option></select>
-          <button class="btn" id="boatClear">Clear</button>
+        <div id="sliders"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="boat"></h2>
+        <div class="row">
+          <button class="btn" id="boatBtn"></button>
+          <select id="twa" class="btn" aria-label="Angle to the wind"></select>
+          <select id="tack" class="btn" aria-label="Tack"></select>
+          <button class="btn" id="boatClear"></button>
         </div>
         <div class="note" id="boatInfo"></div>
-        <details class="why">
-          <summary>Why did my boat go round in a full circle without touching the sails?</summary>
-          <p>Trimmed sails only "know" the angle between the boat and the wind. If you never touch them and keep the boat sailing nicely, you hold that angle – so your heading follows the wind. If the wind direction itself changes along your track, you turn with it.</p>
-          <p>On calm nights and mornings the shores cool much faster than the lake. Cold air drains off the Pfänder, out of the Bregenzerwald and the Rhine Valley, down from the Appenzell hills and off the Bavarian/Württemberg shore – from every side towards the warmer open water, where it converges. Near such a convergence the wind blows from the north on the north side, from the south on the south side, from the east on the east side. Holding the same angle to that wind (e.g. a beam reach) carries you tangentially around the convergence zone – one full turn of the compass and roughly back to where you started, with the sails never touched.</p>
-          <p>Try it: load <b>“Calm night – the circle”</b>, then drop a boat 1–3 km from the calm spot in the middle of the eastern lake. Föhn, Pfänderwind or a large-scale wind from any direction push that calm spot around or wipe it out.</p>
-          <p class="muted">Model, not measurement: a terrain-shaped large-scale wind plus six local wind systems, all with assumed shapes and strengths, based on the Pfänderwind climatology (Gohm et al., Meteorol. Z. 2015), MeteoSwiss on Rhine Valley föhn reaching Rorschach–Altenrhein, DWD on the land–lake breeze at Friedrichshafen and the ZAMG/vol.at report of a "mini convergence" with NE wind at Friedrichshafen and S–SE at Bregenz/Rohrspitz.</p>
-        </details>
-        <div class="sliders" id="sliders"></div>
       </div>
-    </div>
-    <div class="list" id="list"></div>
-  </div>
-
-  <footer>
-    Data sources: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data),
-    <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>,
-    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. The animated flow is a model: a large-scale wind with adjustable direction that is reshaped by the terrain, plus six local wind systems (Rhine Valley föhn/valley breeze, Rhine outflow, Bregenzerwald, Pfänder downslope wind, Appenzell hills, land/lake breeze). In live mode their strengths are fitted to the four stations (bounded least squares) and remaining differences are blended in near each station; gusts are simulated between mean and peak; motion is sped up. Refreshes automatically every 5 minutes.<br>
-    Prototype – not an official storm warning. Always follow the storm warning lights around the lake.
-  </footer>
+      <details class="about"><summary data-i18n="about"></summary><div id="aboutText"></div></details>
+    </aside>
+  </main>
 </div>
 
 <script>
-const STATIONS = [
-  {id:'lindau',    name:'Lindau',     src:'DWD · Lindau (SWN)',       lat:47.540, lon:9.684, dx:-55, dy:-31},
-  {id:'bregenz',   name:'Bregenz',    src:'GeoSphere · TAWES 11101',  lat:47.499, lon:9.746, gs:'11101', dx:-68, dy:-51},
-  {id:'rohrspitz', name:'Rohrspitz',  src:'GeoSphere · TAWES 11299',  lat:47.497, lon:9.630, gs:'11299', dx:-10, dy:-99},
-  {id:'altenrhein',name:'Altenrhein', src:'MeteoSwiss · ARH',       lat:47.485, lon:9.566, dx:-40, dy:-110},
-];
+// =================== i18n ===================
+const I18N = {
+ en:{
+  sub:'live wind, eastern Lake Constance', loading:'Loading observations …', updated:t=>`Updated ${t} · 10-min values`,
+  animOn:'Flow: on', animOff:'Flow: off', stations:'Stations', last3h:'last 3 h', systems:'Wind systems', boat:'Boat test',
+  avg:'Average', dir:'Direction', gust:'Gust', gustS:'gust', stale:'stale', building:'building history …', nodata:'No data', noobs:'No observations available.',
+  warn34:'Gusts ≥ 34 kn (storm level)', warn25:'Gusts ≥ 25 kn (strong wind)', warn0:'Below strong-wind level',
+  live:'Live (fitted)', sim:'Simulator', load:'Load scenario …',
+  noteSim:'Simulator: the flow shows only the systems you set. Station markers still show live data.',
+  noteLive:'Live: direction and strength of every system are fitted to the four stations (bars show the fit). Move a slider to take over.',
+  noteWait:'Live: waiting for station data …', from:'from', upto:'up to',
+  boatBtn:'⛵ Drop boat', clear:'Clear', stbd:'starboard tack', port:'port tack',
+  twa:{45:'45° close-hauled',60:'60° close reach',90:'90° beam reach',120:'120° broad reach',160:'160° running'},
+  placing:'Tap on the lake to put the boat in the water.', notWater:'That is not water – try again.',
+  boatInfo:(twa,tack,turn,tt,full,stop)=>`Sails untouched (${twa}° to the wind, ${tack}) · heading turned <b>${turn}°</b> · ${tt} sailed${full?' · <b class="ok">full circle!</b>':''}${stop?' · stopped: '+stop:''}`,
+  shore:'reached the shore', nowind:'no wind data',
+  legendArrow:'Arrows point where the wind blows to', synTitle:'Large-scale', calm:'calm',
+  about:'About, model & sources',
+  aboutText:`<p>Observations: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data), <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>, <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-min means; gust = peak within the interval. Refreshes every 5 minutes. Map: Esri, © OpenStreetMap contributors.</p>
+  <p>The animated flow is a model, not a measurement: a large-scale wind with adjustable direction that the terrain reshapes, plus six local systems with assumed shapes. In live mode their strengths are fitted to the four stations (bounded least squares) and remaining differences are blended in near each station; motion is sped up. Assumptions draw on Gohm et al. (2015, Pfänderwind), MeteoSwiss/SRF (Rhine Valley föhn), DWD (land–lake breeze) and a ZAMG report of a convergence over the eastern lake.</p>
+  <p>Prototype – not an official storm warning. Always follow the storm warning lights.</p>`,
+  dirs:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'], locale:'en-GB',
+  sys:{
+   syn:['Large-scale wind','One synoptic flow from any direction, reshaped by the terrain: steered along the lake axis (WNW–ESE), braked and split at the Pfänder/Alps wall (south part into the Rhine Valley, north part towards Lindau), blocked by the Appenzell/Alps edge except at the Rhine Valley gap.'],
+   rheintal:['Rhine Valley','Positive: south föhn / night-time mountain wind accelerated in the St. Gallen Rhine Valley, leaving it over the delta from SSE and fanning out towards Altenrhein–Rorschach. Negative: daytime valley breeze sucking lake air into the valley.'],
+   rhein:['Rhine outflow','Cold air draining along the river bed and dams (night/morning) forms a narrow jet out of the new Rhine mouth between Fußach and Rohrspitz.'],
+   wald:['Bregenzerwald','Drainage and gap wind out of the Bregenzer Ach valley plus the south-east Pfänderwind over the Gebhardsberg (evening to morning); reaches the lake from SE between Bregenz and Hard.'],
+   pfaender:['Pfänder downslope','Classical Pfänderwind: E/NE flow crosses the Pfänder ridge and falls foehn-like onto Lochau and Bregenz. Strong near the shore, gone a few km out.'],
+   swiss:['Appenzell hills','Downslope wind and "Appenzeller föhn" from the hills above Rorschach and Altenrhein, from S to SSW, decaying offshore.'],
+   thermal:['Land ⇄ lake breeze','Positive: at night the shores cool faster than the lake, cold air drains offshore from every side and converges over open water. Negative: on sunny afternoons wind blows from the lake towards every shore.'],
+  },
+  ends:{rheintal:['← valley breeze','föhn →'], thermal:['← lake breeze','land breeze →']},
+  hints:{ne:'E–NE flow: classical Pfänderwind likely.', n:'Northerly / Bise: steady, bends into the Rhine Valley at the south shore.', s:'Southerly flow over the Alps: watch for föhn in the Rhine Valley.', sw:'SW–W flow: with cold air in the valley a weak SE Pfänderwind is possible (evening–morning).', nw:'NW flow: little terrain interaction, channelled along the lake.'},
+  presets:{night:'Calm night – land-breeze convergence', foehn:'Föhn storm out of the Rhine Valley', west:'Westerly front', bise:'Bise with Pfänderwind', pfaender:'Spring evening Pfänderwind', sepf:'SE Pfänderwind under a westerly (night)', summer:'Sunny summer afternoon', calm:'All off'},
+ },
+ de:{
+  sub:'Live-Wind, östlicher Bodensee', loading:'Lade Messwerte …', updated:t=>`Stand ${t} · 10-Min-Werte`,
+  animOn:'Strömung: an', animOff:'Strömung: aus', stations:'Stationen', last3h:'letzte 3 h', systems:'Windsysteme', boat:'Boots-Test',
+  avg:'Mittel', dir:'Richtung', gust:'Böe', gustS:'Böe', stale:'veraltet', building:'Verlauf wird aufgebaut …', nodata:'Keine Daten', noobs:'Keine Messwerte verfügbar.',
+  warn34:'Böen ≥ 34 kn (Sturm)', warn25:'Böen ≥ 25 kn (Starkwind)', warn0:'Unter Starkwindniveau',
+  live:'Live (angepasst)', sim:'Simulator', load:'Szenario laden …',
+  noteSim:'Simulator: Die Strömung zeigt nur die eingestellten Systeme. Die Stationen zeigen weiter Live-Daten.',
+  noteLive:'Live: Richtung und Stärke aller Systeme werden an die vier Stationen angepasst (Balken zeigen den Fit). Einen Regler bewegen, um selbst zu übernehmen.',
+  noteWait:'Live: warte auf Stationsdaten …', from:'aus', upto:'bis',
+  boatBtn:'⛵ Boot setzen', clear:'Löschen', stbd:'Steuerbordbug', port:'Backbordbug',
+  twa:{45:'45° hoch am Wind',60:'60° am Wind',90:'90° halber Wind',120:'120° raumschots',160:'160° vor dem Wind'},
+  placing:'Tippe auf den See, um das Boot ins Wasser zu setzen.', notWater:'Das ist kein Wasser – nochmal versuchen.',
+  boatInfo:(twa,tack,turn,tt,full,stop)=>`Segel unverändert (${twa}° zum Wind, ${tack}) · Kurs gedreht um <b>${turn}°</b> · ${tt} gesegelt${full?' · <b class="ok">einmal im Kreis!</b>':''}${stop?' · gestoppt: '+stop:''}`,
+  shore:'Ufer erreicht', nowind:'keine Winddaten',
+  legendArrow:'Pfeile zeigen, wohin der Wind weht', synTitle:'Großwetterlage', calm:'still',
+  about:'Info, Modell & Quellen',
+  aboutText:`<p>Messwerte: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, Rohdaten), <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Quelle: MeteoSchweiz</a>, <a href="https://brightsky.dev">DWD über Bright Sky</a>. 10-Minuten-Mittel; Böe = Spitze im Intervall. Aktualisierung alle 5 Minuten. Karte: Esri, © OpenStreetMap-Mitwirkende.</p>
+  <p>Die animierte Strömung ist ein Modell, keine Messung: eine Großwetterlage mit einstellbarer Richtung, die vom Gelände verformt wird, plus sechs lokale Systeme mit angenommener Form. Im Live-Modus werden ihre Stärken an die vier Stationen angepasst (beschränkte Ausgleichsrechnung), Restabweichungen werden nahe jeder Station eingerechnet; die Bewegung läuft im Zeitraffer. Grundlagen: Gohm et al. (2015, Pfänderwind), MeteoSchweiz/SRF (Rheintal-Föhn), DWD (Land-See-Wind) und ein ZAMG-Bericht über eine Konvergenz über dem Ostsee.</p>
+  <p>Prototyp – keine offizielle Sturmwarnung. Maßgeblich sind die Sturmwarnleuchten.</p>`,
+  dirs:['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'], locale:'de-AT',
+  sys:{
+   syn:['Großwetterlage','Eine großräumige Strömung aus beliebiger Richtung, vom Gelände verformt: entlang der Seeachse (WNW–OSO) geführt, an der Pfänder/Alpen-Wand gebremst und geteilt (Süden ins Rheintal, Norden Richtung Lindau), am Appenzell/Alpen-Rand blockiert – außer an der Rheintal-Öffnung.'],
+   rheintal:['Rheintal','Positiv: Südföhn / nächtlicher Bergwind, im St. Galler Rheintal beschleunigt, tritt aus SSO über das Delta aus und fächert Richtung Altenrhein–Rorschach auf. Negativ: Talwind am Tag, der Seeluft ins Tal saugt.'],
+   rhein:['Rhein-Ausfluss','Kaltluft, die nachts und morgens entlang Flussbett und Dämmen abfließt, bildet einen schmalen Strahl aus der Rheinmündung zwischen Fußach und Rohrspitz.'],
+   wald:['Bregenzerwald','Abfluss- und Lückenwind aus dem Tal der Bregenzer Ach plus Südost-Pfänderwind über den Gebhardsberg (abends bis morgens); erreicht den See aus SO zwischen Bregenz und Hard.'],
+   pfaender:['Pfänder-Fallwind','Klassischer Pfänderwind: Ost-/Nordostströmung überquert den Pfänder und fällt föhnartig auf Lochau und Bregenz. Stark nahe am Ufer, wenige km draußen verschwunden.'],
+   swiss:['Appenzeller Hänge','Hangabwind und „Appenzeller Föhn“ von den Hängen über Rorschach und Altenrhein, aus S bis SSW, nimmt seewärts ab.'],
+   thermal:['Land- ⇄ Seewind','Positiv: Nachts kühlen die Ufer schneller ab als der See, Kaltluft fließt von allen Seiten aufs Wasser und läuft dort zusammen. Negativ: An sonnigen Nachmittagen weht der Wind vom See zu allen Ufern.'],
+  },
+  ends:{rheintal:['← Talwind','Föhn →'], thermal:['← Seewind','Landwind →']},
+  hints:{ne:'Ost-/Nordostströmung: klassischer Pfänderwind wahrscheinlich.', n:'Nordlage / Bise: gleichmäßig, biegt am Südufer ins Rheintal ein.', s:'Südströmung über den Alpen: auf Föhn im Rheintal achten.', sw:'SW–W-Strömung: bei Kaltluft im Tal ist schwacher SO-Pfänderwind möglich (abends–morgens).', nw:'NW-Strömung: wenig Geländeeinfluss, entlang des Sees geführt.'},
+  presets:{night:'Ruhige Nacht – Landwind-Konvergenz', foehn:'Föhnsturm aus dem Rheintal', west:'Westwind-Front', bise:'Bise mit Pfänderwind', pfaender:'Pfänderwind am Frühlingsabend', sepf:'SO-Pfänderwind unter Westlage (Nacht)', summer:'Sonniger Sommernachmittag', calm:'Alles aus'},
+ }
+};
+let LANG = (()=>{ try{ const s=localStorage.getItem('wind-lang'); if(s) return s; }catch(e){}
+  return ((navigator.languages&&navigator.languages[0])||navigator.language||'en').toLowerCase().startsWith('de') ? 'de' : 'en'; })();
+const T = () => I18N[LANG];
 
+// =================== basics ===================
+const STATIONS = [
+  {id:'lindau',    name:'Lindau',     src:'DWD · Lindau (SWN)',      lat:47.540, lon:9.684},
+  {id:'bregenz',   name:'Bregenz',    src:'GeoSphere · TAWES 11101', lat:47.499, lon:9.746, gs:'11101'},
+  {id:'rohrspitz', name:'Rohrspitz',  src:'GeoSphere · TAWES 11299', lat:47.497, lon:9.630, gs:'11299'},
+  {id:'altenrhein',name:'Altenrhein', src:'MeteoSwiss · ARH',        lat:47.485, lon:9.566},
+];
 let UNIT = (()=>{try{return localStorage.getItem('wind-unit')||'kn'}catch(e){return 'kn'}})();
-const CONV = {kn:1.94384, kmh:3.6, ms:1};
-const ULABEL = {kn:'kn', kmh:'km/h', ms:'m/s'};
+const CONV = {kn:1.94384, kmh:3.6, ms:1}, ULABEL = {kn:'kn', kmh:'km/h', ms:'m/s'};
 const fmt = ms => ms==null||isNaN(ms) ? '–' : (ms*CONV[UNIT]).toFixed(UNIT==='ms'?1:0);
 const BFT = [0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7];
 const bft = ms => { let b=0; while(b<BFT.length && ms>=BFT[b]) b++; return b; };
 const color = ms => ms==null ? '#566' : ms<3.4 ? 'var(--b0)' : ms<5.5 ? 'var(--b1)' : ms<8 ? 'var(--b2)' : ms<12.9 ? 'var(--b3)' : 'var(--b4)';
-const DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-const dirName = d => d==null ? '–' : DIRS[Math.round(d/22.5)%16];
-const hhmm = t => t ? t.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '–';
+const dirName = d => d==null ? '–' : T().dirs[Math.round(((d%360)+360)%360/22.5)%16];
+const hhmm = t => t ? t.toLocaleTimeString(T().locale,{hour:'2-digit',minute:'2-digit'}) : '–';
+const SYSCOL = {syn:'#9fb4ff', rheintal:'#ef8a5b', rhein:'#5bc0ef', wald:'#7bd88f', pfaender:'#f2c94c', swiss:'#d38cf2', thermal:'#f27fa5'};
 
-// ---------- Data sources ----------
+// =================== data ===================
 async function loadGeoSphere(){
-  const end = new Date(), start = new Date(end - 3*3600e3);
-  const iso = d => d.toISOString().slice(0,16);
+  const end = new Date(), start = new Date(end - 3*3600e3), iso = d => d.toISOString().slice(0,16);
   const ids = STATIONS.filter(s=>s.gs).map(s=>s.gs).join(',');
-  const url = `https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min?parameters=DD,FF,FFX&station_ids=${ids}&start=${iso(start)}&end=${iso(end)}`;
-  const j = await fetch(url).then(r=>{ if(!r.ok) throw new Error('GeoSphere '+r.status); return r.json(); });
-  const ts = j.timestamps.map(t=>new Date(t));
-  const out = {};
-  for(const f of j.features){
-    const p = f.properties.parameters;
-    out[f.properties.station] = ts.map((t,i)=>({t, dd:p.DD.data[i], ff:p.FF.data[i], fx:p.FFX.data[i]})).filter(r=>r.ff!=null);
-  }
+  const j = await fetch(`https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min?parameters=DD,FF,FFX&station_ids=${ids}&start=${iso(start)}&end=${iso(end)}`)
+    .then(r=>{ if(!r.ok) throw new Error('GeoSphere '+r.status); return r.json(); });
+  const ts = j.timestamps.map(t=>new Date(t)), out = {};
+  for(const f of j.features){ const p = f.properties.parameters;
+    out[f.properties.station] = ts.map((t,i)=>({t, dd:p.DD.data[i], ff:p.FF.data[i], fx:p.FFX.data[i]})).filter(r=>r.ff!=null); }
   return out;
 }
 async function loadMeteoSwiss(){
   const txt = await fetch('https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/arh/ogd-smn_arh_t_now.csv').then(r=>{ if(!r.ok) throw new Error('MeteoSwiss '+r.status); return r.text(); });
-  const lines = txt.trim().split(/\r?\n/); const h = lines[0].split(';');
+  const lines = txt.trim().split(/\r?\n/), h = lines[0].split(';');
   const iT=h.indexOf('reference_timestamp'), iF=h.indexOf('fkl010z0'), iD=h.indexOf('dkl010z0'), iX=h.indexOf('fkl010z1');
   const num = v => v===''||v==null ? null : +v;
   const rows = lines.slice(1).map(l=>{ const c=l.split(';'); const [d,m,y_t]=c[iT].split('.'); const [y,t]=y_t.split(' ');
     return {t:new Date(`${y}-${m}-${d}T${t}:00Z`), ff:num(c[iF]), dd:num(c[iD]), fx:num(c[iX])}; }).filter(r=>r.ff!=null);
-  const cut = Date.now()-3*3600e3;
-  return rows.filter(r=>r.t>=cut);
+  return rows.filter(r=>r.t>=Date.now()-3*3600e3);
 }
 async function loadDWD(){
   const j = await fetch('https://api.brightsky.dev/current_weather?dwd_station_id=06102').then(r=>{ if(!r.ok) throw new Error('DWD '+r.status); return r.json(); });
-  const w = j.weather; const k = v => v==null ? null : v/3.6; // Bright Sky returns km/h
+  const w = j.weather, k = v => v==null ? null : v/3.6; // Bright Sky returns km/h
   return [{t:new Date(w.timestamp), ff:k(w.wind_speed_10), dd:w.wind_direction_10, fx:k(w.wind_gust_speed_10)}];
 }
-
-let DATA = {}, ERR = {};
+let DATA = {}, ERR = {}, UPDATED = null;
 async function loadAll(){
-  document.getElementById('updated').textContent = 'Loading observations …';
+  document.getElementById('updated').textContent = T().loading;
   const [gs, ms, dwd] = await Promise.allSettled([loadGeoSphere(), loadMeteoSwiss(), loadDWD()]);
   DATA = {}; ERR = {};
   if(gs.status==='fulfilled'){ DATA.bregenz=gs.value['11101']||[]; DATA.rohrspitz=gs.value['11299']||[]; } else { ERR.bregenz=ERR.rohrspitz=gs.reason.message; }
   if(ms.status==='fulfilled') DATA.altenrhein=ms.value; else ERR.altenrhein=ms.reason.message;
   if(dwd.status==='fulfilled'){
-    // Lindau: build a small history in the browser
     let hist=[]; try{ hist=JSON.parse(localStorage.getItem('wind-lindau')||'[]').map(r=>({...r,t:new Date(r.t)})); }catch(e){}
-    const cur = dwd.value[0];
-    if(!hist.length || +hist[hist.length-1].t !== +cur.t) hist.push(cur);
-    hist = hist.filter(r=>r.t>=Date.now()-3*3600e3);
-    try{ localStorage.setItem('wind-lindau', JSON.stringify(hist)); }catch(e){}
+    const cur = dwd.value[0]; if(!hist.length || +hist[hist.length-1].t !== +cur.t) hist.push(cur);
+    hist = hist.filter(r=>r.t>=Date.now()-3*3600e3); try{ localStorage.setItem('wind-lindau', JSON.stringify(hist)); }catch(e){}
     DATA.lindau = hist;
   } else ERR.lindau=dwd.reason.message;
-  refit();
-  document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + ' · 10-minute values, last 3 hours';
-  render();
+  UPDATED = new Date(); refit(); render();
 }
 
-// ---------- Rendering ----------
-function arrow(cx,cy,dd,ms,scale=1){
-  if(dd==null||ms==null) return `<circle cx="${cx}" cy="${cy}" r="8" fill="#566"/>`;
-  const len = (26 + Math.min(ms,15)*4.5)*scale, rot = dd; // arrow drawn pointing south at 0°, so rotating by the "from" direction points where the wind blows to
-  return `<g transform="translate(${cx},${cy}) rotate(${rot})">
-    <line x1="0" y1="${-len/2}" x2="0" y2="${len/2-10*scale}" stroke="${color(ms)}" stroke-width="${7*scale}" stroke-linecap="round"/>
-    <path d="M0 ${len/2+4*scale} L${-11*scale} ${len/2-14*scale} L${11*scale} ${len/2-14*scale}Z" fill="${color(ms)}"/></g>`;
-}
-let MAP, MARKERS = {};
-function initMap(){
-  if(MAP || !window.L) return;
-  MAP = L.map('map', {zoomControl:true, scrollWheelZoom:false, attributionControl:true}).setView([47.515, 9.66], 11);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom:16,
-    attribution:'Tiles &copy; Esri — Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(MAP);
-  MAP.fitBounds(L.latLngBounds(STATIONS.map(s=>[s.lat,s.lon])).pad(0.35));
-}
-function markerHtml(st, last){
-  const a = last ? `<svg width="56" height="56" viewBox="-28 -28 56 56" style="overflow:visible">${arrow(0,0,last.dd,last.ff,0.75)}</svg>`
-                 : `<svg width="56" height="56" viewBox="-28 -28 56 56" style="overflow:visible"><circle r="6" fill="#566"/></svg>`;
-  return `<div class="wm"><div class="lbl"><b>${st.name}</b><span>${last?fmt(last.ff)+' / '+fmt(last.fx):'–'} ${ULABEL[UNIT]}</span></div>${a}</div>`;
-}
-function renderMap(){
-  initMap(); if(!MAP) return;
-  for(const st of STATIONS){
-    const last=(DATA[st.id]||[]).slice(-1)[0];
-    const icon = L.divIcon({className:'', html:markerHtml(st,last), iconSize:[110,100], iconAnchor:[55,72]});
-    if(MARKERS[st.id]) MARKERS[st.id].setIcon(icon);
-    else MARKERS[st.id] = L.marker([st.lat, st.lon], {icon, keyboard:false}).addTo(MAP)
-      .bindTooltip(`${st.src}${last?' · '+hhmm(last.t):''}`, {direction:'bottom', offset:[0,8]});
-  }
-  document.getElementById('legend').innerHTML = [['var(--b0)','< 3 Bft'],['var(--b1)','3 Bft'],['var(--b2)','4 Bft'],['var(--b3)','5–6 Bft'],['var(--b4)','≥ 7 Bft']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + '<span style="margin-left:auto">Arrow points where the wind is blowing to · flow: wind-system model, sped up</span>';
-}
-function spark(rows){
-  if(rows.length<2) return `<svg class="spark" viewBox="0 0 300 44"><text x="0" y="28" class="maplabel">Building history …</text></svg>`;
-  const t0=Date.now()-3*3600e3, t1=Date.now(), max=Math.max(4,...rows.map(r=>r.fx??r.ff));
-  const X=t=>((t-t0)/(t1-t0))*300, Y=v=>42-(v/max)*38;
-  const line=k=>rows.filter(r=>r[k]!=null).map((r,i)=>(i?'L':'M')+X(r.t).toFixed(1)+' '+Y(r[k]).toFixed(1)).join('');
-  const area = line('ff')+` L${X(rows[rows.length-1].t).toFixed(1)} 42 L${X(rows[0].t).toFixed(1)} 42Z`;
-  return `<svg class="spark" viewBox="0 0 300 44" preserveAspectRatio="none">
-    <path d="${area}" fill="${color(rows[rows.length-1].ff)}" opacity=".18"/>
-    <path d="${line('fx')}" fill="none" stroke="var(--mute)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>
-    <path d="${line('ff')}" fill="none" stroke="${color(rows[rows.length-1].ff)}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
-}
-function rose(dd,ms){
-  let ticks=''; for(let i=0;i<8;i++) ticks+=`<line x1="32" y1="4" x2="32" y2="${i%2?8:11}" stroke="var(--line)" stroke-width="2" transform="rotate(${i*45} 32 32)"/>`;
-  return `<svg class="rose" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="var(--panel2)" stroke="var(--line)"/>${ticks}
-    <text x="32" y="20" text-anchor="middle" font-size="8" fill="var(--mute)">N</text>${arrow(32,34,dd,ms,.55)}</svg>`;
-}
-function renderList(){
-  let h='';
-  for(const st of STATIONS){
-    const rows=DATA[st.id]||[], last=rows.slice(-1)[0];
-    const stale = last && (Date.now()-last.t > 40*60e3);
-    const b = last ? bft(last.ff) : null;
-    h += `<div class="card st ${stale?'stale':''}">
-      ${rose(last?.dd,last?.ff)}
-      <div><h3>${st.name}</h3><div class="src">${st.src}</div>
-        ${last?`<span class="bft" style="background:${color(last.ff)}">${b} Bft · ${dirName(last.dd)} ${last.dd??''}°</span>`:''}
-        ${ERR[st.id]?`<div class="err">No data: ${ERR[st.id]}</div>`:''}</div>
-      <div><div class="big">${last?fmt(last.ff):'–'}<small>${ULABEL[UNIT]}</small></div>
-        <div class="meta">Gust ${last?fmt(last.fx):'–'} · ${hhmm(last?.t)}${stale?' (stale)':''}</div></div>
-      ${spark(rows)}</div>`;
-  }
-  document.getElementById('list').innerHTML = h;
-}
-function renderSummary(){
-  const lasts = STATIONS.map(s=>(DATA[s.id]||[]).slice(-1)[0]).filter(Boolean);
-  if(!lasts.length){ document.getElementById('summary').innerHTML='<span class="err">No observations available.</span>'; return; }
-  const avg = lasts.reduce((a,r)=>a+r.ff,0)/lasts.length;
-  const gmax = Math.max(...lasts.map(r=>r.fx??r.ff));
-  // vector-mean direction
-  let sx=0, sy=0; lasts.forEach(r=>{ if(r.dd!=null){ sx+=Math.sin(r.dd*Math.PI/180)*r.ff; sy+=Math.cos(r.dd*Math.PI/180)*r.ff; }});
-  const md = (Math.atan2(sx,sy)*180/Math.PI+360)%360;
-  const kn = gmax*1.94384;
-  const w = kn>=34 ? ['Gusts at storm level (≥ 34 kn)','var(--b4)'] : kn>=25 ? ['Gusts at strong-wind level (≥ 25 kn)','var(--b3)'] : ['Below strong-wind level','var(--b1)'];
-  document.getElementById('summary').innerHTML = `
-    <div><div class="k">Average</div><div class="v">${fmt(avg)} ${ULABEL[UNIT]} · ${bft(avg)} Bft</div></div>
-    <div><div class="k">Direction</div><div class="v">${dirName(md)} (${Math.round(md)}°)</div></div>
-    <div><div class="k">Strongest gust</div><div class="v">${fmt(gmax)} ${ULABEL[UNIT]}</div></div>
-    <div class="warn" style="background:${w[1]};color:#08131a">${w[0]}</div>`;
-}
-// ---------- Wind animation (particle flow over the lake) ----------
-// Assumptions: the wind field between stations is interpolated with inverse-distance
-// weighting on the u/v components; gusts are simulated as moving cells that push the
-// local speed from the 10-min mean towards the measured peak; motion is sped up
-// (time-lapse) so it stays visible at every zoom level.
-const LAKE = [[9.2961,47.6128],[9.3266,47.5933],[9.3437,47.5858],[9.3456,47.587],[9.3484,47.5839],[9.3821,47.5708],[9.384,47.5704],[9.3843,47.5707],[9.3847,47.5619],[9.3824,47.5645],[9.3842,47.5619],[9.3824,47.562],[9.3802,47.5543],[9.3866,47.5505],[9.3816,47.5477],[9.3867,47.5504],[9.3861,47.5475],[9.3906,47.5433],[9.4053,47.5363],[9.4222,47.5235],[9.4378,47.5186],[9.4395,47.5149],[9.4413,47.5139],[9.4415,47.5136],[9.4416,47.5133],[9.4395,47.5149],[9.4402,47.5125],[9.4379,47.5137],[9.439,47.5124],[9.4351,47.5117],[9.436,47.5064],[9.4458,47.5058],[9.4482,47.5013],[9.4535,47.5002],[9.4518,47.4993],[9.4693,47.4946],[9.4775,47.4896],[9.4793,47.4828],[9.4862,47.4799],[9.4993,47.4781],[9.5308,47.4803],[9.5324,47.4813],[9.5314,47.4827],[9.5325,47.483],[9.533,47.4812],[9.5389,47.482],[9.5442,47.4857],[9.5456,47.491],[9.5481,47.4898],[9.5479,47.4907],[9.547,47.4906],[9.5465,47.4911],[9.5464,47.4914],[9.5549,47.4961],[9.555,47.501],[9.5601,47.5011],[9.5613,47.5042],[9.56,47.4992],[9.5625,47.5042],[9.5624,47.5002],[9.5686,47.5013],[9.5709,47.4953],[9.5863,47.4907],[9.585,47.4885],[9.5857,47.4878],[9.5857,47.489],[9.5866,47.4901],[9.587,47.4877],[9.6028,47.4895],[9.6091,47.4879],[9.6087,47.4907],[9.6132,47.4922],[9.6129,47.4908],[9.6132,47.4906],[9.6157,47.4956],[9.624,47.4945],[9.6336,47.503],[9.6446,47.5071],[9.6472,47.5061],[9.6454,47.5032],[9.6379,47.4991],[9.6407,47.4924],[9.6504,47.4872],[9.6487,47.4902],[9.6546,47.4925],[9.6619,47.4907],[9.6616,47.4886],[9.6676,47.4864],[9.664,47.4882],[9.6642,47.4917],[9.6625,47.492],[9.6622,47.4912],[9.662,47.4912],[9.6626,47.4922],[9.6664,47.4913],[9.668,47.4916],[9.6621,47.4947],[9.6683,47.4945],[9.665,47.4977],[9.6666,47.503],[9.6549,47.5082],[9.6571,47.5108],[9.6497,47.5155],[9.6477,47.5144],[9.6487,47.5162],[9.6433,47.5248],[9.646,47.526],[9.6517,47.5208],[9.6516,47.5177],[9.6615,47.5134],[9.6607,47.5123],[9.6705,47.5056],[9.6724,47.4989],[9.6787,47.4979],[9.6853,47.5018],[9.6787,47.4973],[9.6787,47.4935],[9.681,47.4919],[9.6878,47.4928],[9.6851,47.4968],[9.6853,47.4999],[9.6861,47.5007],[9.6869,47.4953],[9.6882,47.495],[9.6874,47.4973],[9.6892,47.4972],[9.6875,47.4979],[9.6894,47.4976],[9.6898,47.5003],[9.6849,47.5041],[9.6919,47.5066],[9.728,47.5075],[9.7419,47.5044],[9.7458,47.5056],[9.7463,47.5085],[9.7506,47.5085],[9.7538,47.5151],[9.7508,47.5217],[9.7417,47.5296],[9.7415,47.5282],[9.7366,47.5317],[9.73,47.5336],[9.7289,47.5324],[9.7281,47.5329],[9.7274,47.5346],[9.7317,47.5343],[9.7283,47.5346],[9.723,47.5446],[9.7127,47.5505],[9.7044,47.5488],[9.7011,47.5511],[9.6928,47.5497],[9.6829,47.552],[9.6813,47.5486],[9.6915,47.5482],[9.6862,47.5449],[9.6884,47.544],[9.6809,47.5422],[9.6753,47.5458],[9.6804,47.548],[9.6825,47.5525],[9.6794,47.5568],[9.6536,47.5567],[9.6439,47.5613],[9.6393,47.5668],[9.6293,47.5662],[9.6308,47.5694],[9.6275,47.571],[9.6143,47.5697],[9.6067,47.5735],[9.6074,47.5761],[9.6024,47.5841],[9.5963,47.5883],[9.5726,47.5841],[9.5505,47.5878],[9.5298,47.603],[9.5267,47.6154],[9.518,47.6214],[9.5157,47.6339],[9.4953,47.6498],[9.4878,47.6511],[9.4827,47.6487],[9.4859,47.6519],[9.4821,47.6486],[9.4717,47.6513],[9.4628,47.6484],[9.4523,47.655],[9.4354,47.6566],[9.4209,47.6657],[9.4072,47.6683],[9.3927,47.6682],[9.3873,47.6645],[9.3701,47.6653],[9.3675,47.6621],[9.3653,47.6634],[9.3569,47.6601],[9.3492,47.661],[9.3326,47.6667]]; // OSM outline of the eastern Obersee [lon,lat]
-const PCOL = ['#7fb3c8','#4fc3a1','#c9d85a','#f2a93b','#ef5b4c'];
-const pBin = ms => ms<3.4?0 : ms<5.5?1 : ms<8?2 : ms<12.9?3 : 4;
-const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-const W = { on: !REDUCED, cv:null, ctx:null, dpr:1, path:null, grid:null, gw:0, gh:0, step:12, parts:[], raf:null, t:0, moving:false, ready:false };
-
+// =================== model ===================
 // ---------- Local wind-system model (strong assumptions, see SYSTEMS[].why) ----------
 // Local km grid centred on the eastern lake: x east, y north.
 const ORIGIN = {lon:9.65, lat:47.53};
@@ -413,18 +374,19 @@ function fitSystems(obs){ // obs: [{x,y,u,v}] – grid search over the large-sca
   return {S, resid};
 }
 
-// ---------- Field used by the animation: live fit or simulator ----------
+
+// =================== field: live fit or simulator ===================
 const PRESETS = {
-  night:  {label:'Calm night – the circle (land-breeze convergence)', S:{thermal:0.7, pfaender:0.2, wald:0.25, rhein:0.3, synDir:270}},
-  foehn:  {label:'Föhn storm out of the Rhine Valley', S:{rheintal:0.9, rhein:0.2, wald:0.3, swiss:0.45, syn:0.15, synDir:200}},
-  west:   {label:'Westerly front', S:{syn:0.75, synDir:260, rheintal:-0.1}},
-  bise:   {label:'Bise with Pfänderwind', S:{syn:0.5, synDir:50, pfaender:0.5}},
-  pfaender:{label:'Spring evening Pfänderwind', S:{pfaender:0.8, syn:0.2, synDir:70}},
-  sepf:   {label:'SE Pfänderwind under a westerly aloft (night)', S:{wald:0.6, syn:0.15, synDir:250, rheintal:0.1}},
-  summer: {label:'Sunny summer afternoon (lake & valley breeze)', S:{thermal:-0.7, rheintal:-0.45, syn:0.1, synDir:250}},
-  calm:   {label:'All off', S:{synDir:270}},
+  night:  {thermal:0.7, pfaender:0.2, wald:0.25, rhein:0.3, synDir:270},
+  foehn:  {rheintal:0.9, rhein:0.2, wald:0.3, swiss:0.45, syn:0.15, synDir:200},
+  west:   {syn:0.75, synDir:260, rheintal:-0.1},
+  bise:   {syn:0.5, synDir:50, pfaender:0.5},
+  pfaender:{pfaender:0.8, syn:0.2, synDir:70},
+  sepf:   {wald:0.6, syn:0.15, synDir:250, rheintal:0.1},
+  summer: {thermal:-0.7, rheintal:-0.45, syn:0.1, synDir:250},
+  calm:   {synDir:270},
 };
-let MODE = 'live', SIM = {...PRESETS.night.S}, FIT = null;
+let MODE='live', SIM={...PRESETS.night}, FIT=null, PRESET='';
 function refit(){
   const obs=[], ratios=[];
   for(const st of STATIONS){ const r=(DATA[st.id]||[]).slice(-1)[0]; if(!r||r.dd==null||r.ff==null) continue;
@@ -434,215 +396,320 @@ function refit(){
   ratios.sort((a,b)=>a-b);
   FIT = {...fitSystems(obs), gr: clamp(ratios.length?ratios[Math.floor(ratios.length/2)]:1.4, 1.1, 2.5)};
 }
+const curS = () => MODE==='sim' ? SIM : (FIT ? FIT.S : {});
 function currentField(lat, lon){
   const [x,y]=toXY(lat,lon);
   if(MODE==='sim'){ const m=modelUV(x,y,SIM), sp=Math.hypot(m.u,m.v); return {u:m.u, v:m.v, mean:sp, gust:sp*m.gf}; }
   if(!FIT) return null;
   const m=modelUV(x,y,FIT.S); let u=m.u, v=m.v;
-  for(const r of FIT.resid){ const w=Math.exp(-((x-r.x)**2+(y-r.y)**2)/18); u+=w*r.u; v+=w*r.v; } // honour each station locally
+  for(const r of FIT.resid){ const w=Math.exp(-((x-r.x)**2+(y-r.y)**2)/18); u+=w*r.u; v+=w*r.v; }
   const sp=Math.hypot(u,v); return {u, v, mean:sp, gust:sp*FIT.gr};
 }
 function windField(lat, lon){
   const f=currentField(lat,lon); if(!f) return null;
   const m=Math.hypot(f.u,f.v)||1e-6; return {ux:f.u/m, uy:f.v/m, mean:f.mean, gust:Math.max(f.gust,f.mean)};
 }
-function windRegrid(){
-  if(!W.cv) return;
-  const st=W.step*W.dpr; W.gw=Math.ceil(W.cv.width/st)+1; W.gh=Math.ceil(W.cv.height/st)+1;
-  W.grid=new Array(W.gw*W.gh); let any=false;
-  for(let j=0;j<W.gh;j++) for(let i=0;i<W.gw;i++){
-    const ll=MAP.containerPointToLatLng([i*st/W.dpr, j*st/W.dpr]);
-    const f=windField(ll.lat, ll.lng); W.grid[j*W.gw+i]=f; if(f) any=true;
+
+// =================== map ===================
+function arrow(cx,cy,dd,ms,scale=1,col){
+  if(dd==null||ms==null) return `<circle cx="${cx}" cy="${cy}" r="${6*scale}" fill="#566"/>`;
+  const len=(26+Math.min(ms,15)*4.5)*scale, c=col||color(ms);   // drawn pointing south at 0°: rotating by the FROM direction points downwind
+  return `<g transform="translate(${cx},${cy}) rotate(${dd})"><line x1="0" y1="${-len/2}" x2="0" y2="${len/2-10*scale}" stroke="${c}" stroke-width="${7*scale}" stroke-linecap="round"/><path d="M0 ${len/2+4*scale} L${-11*scale} ${len/2-14*scale} L${11*scale} ${len/2-14*scale}Z" fill="${c}"/></g>`;
+}
+let MAP, MARKERS = {}, SYSLAYER, SYNCTRL, LEGCTRL;
+const xyLL = (x,y) => [ORIGIN.lat + y/111.2, ORIGIN.lon + x/75.1];
+function initMap(){
+  if(MAP || !window.L) return;
+  MAP = L.map('map', {zoomControl:true, scrollWheelZoom:true, attributionControl:true}).setView([47.515, 9.64], 11);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom:16, attribution:'Tiles © Esri — Esri, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(MAP);
+  MAP.fitBounds([[47.465, 9.50],[47.575, 9.80]]);
+  SYSLAYER = L.layerGroup().addTo(MAP);
+  SYNCTRL = L.control({position:'topright'}); SYNCTRL.onAdd = () => L.DomUtil.create('div','ovl'); SYNCTRL.addTo(MAP);
+  LEGCTRL = L.control({position:'bottomleft'}); LEGCTRL.onAdd = () => L.DomUtil.create('div','ovl legend'); LEGCTRL.addTo(MAP);
+  MAP.on('click', boatClick);
+  window.addEventListener('resize', ()=>{ MAP.invalidateSize(); });
+}
+function markerHtml(st, last){
+  const a = `<svg width="44" height="44" viewBox="-22 -22 44 44" style="overflow:visible">${last?arrow(0,0,last.dd,last.ff,0.6):'<circle r="5" fill="#566"/>'}</svg>`;
+  return `<div class="wm"><div class="lbl"><b>${st.name}</b><span>${last?fmt(last.ff)+'/'+fmt(last.fx):'–'} ${ULABEL[UNIT]}</span></div>${a}</div>`;
+}
+function renderMap(){
+  initMap(); if(!MAP) return;
+  for(const st of STATIONS){
+    const last=(DATA[st.id]||[]).slice(-1)[0];
+    const icon = L.divIcon({className:'', html:markerHtml(st,last), iconSize:[90,80], iconAnchor:[45,58]});
+    if(MARKERS[st.id]) MARKERS[st.id].setIcon(icon);
+    else MARKERS[st.id] = L.marker([st.lat, st.lon], {icon, keyboard:false, zIndexOffset:500}).addTo(MAP);
+    MARKERS[st.id].unbindTooltip().bindTooltip(`${st.src}${last?' · '+hhmm(last.t):''}`, {direction:'bottom', offset:[0,6]});
+    MARKERS[st.id].setOpacity(MODE==='sim'?0.35:1);
   }
-  W.ready=any; if(!any && W.ctx) W.ctx.clearRect(0,0,W.cv.width,W.cv.height); windStart();
+  LEGCTRL.getContainer().innerHTML = [['var(--b0)','<3'],['var(--b1)','3'],['var(--b2)','4'],['var(--b3)','5–6'],['var(--b4)','≥7']].map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('') + ` Bft<br><span style="color:var(--mute)">${T().legendArrow}</span>`;
+}
+// --- visualise every wind system: footprint + chip with activity ---
+const SYSGEO = {
+  rheintal:{type:'jet', o:[-2.5,-7.5], from:160, width:3.2, reach:6.5, spread:18, chip:[-2.3,-6.0]},
+  rhein:   {type:'jet', o:[-0.6,-3.2], from:160, width:0.9, reach:3.0, spread:20, chip:[-0.3,-4.6]},
+  wald:    {type:'jet', o:[5.2,-3.8],  from:140, width:1.6, reach:3.5, spread:20, chip:[6.2,-5.0]},
+  pfaender:{type:'ridge', p:[[8.2,-3.0],[7.0,2.5]], from:70, chip:[9.4,0.2]},
+  swiss:   {type:'ridge', p:[[-15,-6.6],[-5.5,-5.4]], from:195, chip:[-9.5,-7.4]},
+  thermal: {type:'ring', c:[-3,0.5], r:6, chip:[-3,7.2]},
+};
+function jetFan(g, s){
+  const sgn = s<0 ? -1 : 1, to = g.from+180, L = g.reach*1.8, pts=[];
+  const [ox,oy]=g.o, side=(a,d)=>[ox+Math.sin(a*DEG)*d, oy+Math.cos(a*DEG)*d];
+  pts.push(side(to-90, g.width*0.6)); for(let a=-g.spread-12;a<=g.spread+12;a+=6) pts.push(side(to+a, L)); pts.push(side(to+90, g.width*0.6));
+  return pts.map(([x,y])=>xyLL(x,y));
+}
+function chipHtml(id, s, toDeg){
+  const a=Math.abs(s), on=a>0.02;
+  const arr = on ? `<svg width="16" height="16" viewBox="-8 -8 16 16" style="transform:rotate(${toDeg}deg)"><path d="M0 -7 L5 4 L0 2 L-5 4Z" fill="${SYSCOL[id]}"/></svg>` : `<svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="3" fill="${SYSCOL[id]}"/></svg>`;
+  return `<div class="chip" style="--c:${SYSCOL[id]};opacity:${on?0.55+0.45*Math.min(1,a):0.35}" data-sys="${id}">${arr}${T().sys[id][0]} <i>${Math.round(a*100)}%</i></div>`;
+}
+function renderSystems(){
+  if(!SYSLAYER) return; SYSLAYER.clearLayers();
+  const S = curS();
+  for(const [id,g] of Object.entries(SYSGEO)){
+    const s = S[id]||0, a=Math.min(1,Math.abs(s)), c=SYSCOL[id];
+    let to = 0;
+    if(g.type==='jet'){ to = s<0 ? g.from : g.from+180;
+      if(a>0.02) L.polygon(jetFan(g,s), {color:c, weight:1, opacity:0.25+0.5*a, fillColor:c, fillOpacity:0.05+0.18*a, interactive:false, dashArray:s<0?'4 4':null}).addTo(SYSLAYER); }
+    if(g.type==='ridge'){ to = g.from+180;
+      L.polyline(g.p.map(([x,y])=>xyLL(x,y)), {color:c, weight:2+8*a, opacity:a>0.02?0.25+0.6*a:0.15, lineCap:'round', interactive:false}).addTo(SYSLAYER); }
+    if(g.type==='ring'){ to = s>=0 ? 180 : 0;
+      if(a>0.02) L.circle(xyLL(...g.c), {radius:g.r*1000, color:c, weight:1.5, opacity:0.3+0.5*a, fill:false, dashArray:s>0?'2 8':'10 6', interactive:false}).addTo(SYSLAYER); }
+    const mk = L.marker(xyLL(...g.chip), {icon:L.divIcon({className:'', html:chipHtml(id,s,to), iconSize:[0,0]}), zIndexOffset:300}).addTo(SYSLAYER);
+    mk.on('click', ()=>focusSys(id));
+  }
+  // large-scale badge
+  const s=S.syn||0, d=S.synDir??270, sp=s*15;
+  SYNCTRL.getContainer().innerHTML = `<div class="t">${T().synTitle}</div><div style="display:flex;align-items:center;gap:6px;margin-top:2px;cursor:pointer" onclick="focusSys('syn')">
+    <svg width="34" height="34" viewBox="-17 -17 34 34"><circle r="15" fill="none" stroke="var(--line)"/><text y="-9" text-anchor="middle" font-size="7" fill="var(--mute)">N</text>${s>0.02?arrow(0,1,d,sp,0.4,SYSCOL.syn):'<circle r="3" fill="#566"/>'}</svg>
+    <div><b>${s>0.02?`${dirName(d)} · ${fmt(sp)} ${ULABEL[UNIT]}`:T().calm}</b><br><span style="color:var(--mute)">${Math.round(s*100)}%</span></div></div>`;
+}
+function focusSys(id){
+  const el=document.querySelector(`.sys[data-id="${id}"]`); if(!el) return;
+  el.classList.add('open'); el.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
-// ---------- Simulator panel ----------
-const fmtS = (sys,s) => (sys.min<0 && s>0 ? '+' : '') + s.toFixed(2);
+// =================== side panel ===================
+function spark(rows){
+  if(rows.length<2) return `<svg class="spark" viewBox="0 0 84 26"><text x="0" y="17" font-size="8" fill="var(--mute)">${T().building}</text></svg>`;
+  const t0=Date.now()-3*3600e3, t1=Date.now(), max=Math.max(4,...rows.map(r=>r.fx??r.ff));
+  const X=t=>((t-t0)/(t1-t0))*84, Y=v=>25-(v/max)*23;
+  const line=k=>rows.filter(r=>r[k]!=null).map((r,i)=>(i?'L':'M')+X(r.t).toFixed(1)+' '+Y(r[k]).toFixed(1)).join('');
+  const c=color(rows[rows.length-1].ff);
+  return `<svg class="spark" viewBox="0 0 84 26" preserveAspectRatio="none"><path d="${line('ff')} L${X(rows[rows.length-1].t).toFixed(1)} 26 L${X(rows[0].t).toFixed(1)} 26Z" fill="${c}" opacity=".18"/><path d="${line('fx')}" fill="none" stroke="var(--mute)" stroke-width="1" stroke-dasharray="2 2"/><path d="${line('ff')}" fill="none" stroke="${c}" stroke-width="1.6"/></svg>`;
+}
+function renderList(){
+  document.getElementById('list').innerHTML = STATIONS.map(st=>{
+    const rows=DATA[st.id]||[], last=rows.slice(-1)[0], stale = last && (Date.now()-last.t > 40*60e3);
+    return `<div class="st ${stale?'stale':''}">
+      <svg class="mini" viewBox="-15 -15 30 30"><circle r="14" fill="var(--panel2)" stroke="var(--line)"/>${last?arrow(0,0,last.dd,last.ff,0.36):''}</svg>
+      <div class="nm"><b>${st.name}</b><span>${last?`${bft(last.ff)} Bft · ${dirName(last.dd)} · ${hhmm(last.t)}${stale?' · '+T().stale:''}`:(ERR[st.id]?`<span class="err">${T().nodata}</span>`:'–')}</span></div>
+      ${spark(rows)}
+      <div class="val">${last?fmt(last.ff):'–'}<small>${T().gustS} ${last?fmt(last.fx):'–'} ${ULABEL[UNIT]}</small></div></div>`;
+  }).join('');
+}
+function renderSummary(){
+  const el=document.getElementById('summary'), lasts=STATIONS.map(s=>(DATA[s.id]||[]).slice(-1)[0]).filter(Boolean);
+  if(!lasts.length){ el.innerHTML=`<span class="err">${UPDATED?T().noobs:T().loading}</span>`; return; }
+  const avg=lasts.reduce((a,r)=>a+r.ff,0)/lasts.length, gmax=Math.max(...lasts.map(r=>r.fx??r.ff));
+  let sx=0, sy=0; lasts.forEach(r=>{ if(r.dd!=null){ sx+=Math.sin(r.dd*DEG)*r.ff; sy+=Math.cos(r.dd*DEG)*r.ff; }});
+  const md=(Math.atan2(sx,sy)/DEG+360)%360, kn=gmax*1.94384;
+  const w = kn>=34 ? [T().warn34,'var(--b4)'] : kn>=25 ? [T().warn25,'var(--b3)'] : [T().warn0,'var(--b1)'];
+  el.innerHTML = `<div><div class="k">${T().avg}</div><div class="v">${fmt(avg)} ${ULABEL[UNIT]} · ${bft(avg)} Bft</div></div>
+    <div><div class="k">${T().dir}</div><div class="v">${dirName(md)} ${Math.round(md)}°</div></div>
+    <div><div class="k">${T().gust}</div><div class="v">${fmt(gmax)} ${ULABEL[UNIT]}</div></div>
+    <div class="warn" style="background:${w[1]}">${w[0]}</div>`;
+}
+const fmtS = (sys,s) => (sys.min<0 && s>0 ? '+' : '') + Math.round(s*100) + '%';
+function synHintKey(d){ d=((d%360)+360)%360; if(d>=30&&d<=100) return 'ne'; if(d>=330||d<30) return 'n'; if(d>=150&&d<=215) return 's'; if(d>215&&d<=290) return 'sw'; return 'nw'; }
 function buildPanel(){
-  const sel=document.getElementById('preset');
-  sel.innerHTML='<option value="">Load a scenario …</option>'+Object.entries(PRESETS).map(([k,p])=>`<option value="${k}">${p.label}</option>`).join('');
-  sel.onchange=()=>{ if(!sel.value) return; SIM={...PRESETS[sel.value].S}; setMode('sim'); sel.value=''; };
   document.getElementById('sliders').innerHTML = SYSTEMS.map(sys=>`
-    <div class="sl" data-id="${sys.id}">
-      <div class="slh"><b>${sys.name}</b><span class="slv"></span></div>
-      <input type="range" min="${sys.min}" max="${sys.max}" step="0.01" aria-label="${sys.name}">
-      ${sys.dir?`<div class="dirrow"><span>from</span><input type="range" class="dir" min="0" max="355" step="5" aria-label="Large-scale wind direction"><b class="dirv"></b></div><div class="hint"></div>`:''}
-      ${sys.min<0?`<div class="ends"><span>${sys.id==='thermal'?'← lake breeze (day)':'← valley breeze (day)'}</span><span>${sys.id==='thermal'?'land breeze (night) →':'föhn / mountain wind →'}</span></div>`:''}
-      <p>${sys.why}</p>
+    <div class="sys" data-id="${sys.id}" style="--c:${SYSCOL[sys.id]}">
+      <span class="dot"></span><div class="nm"><b></b><span class="slv"></span></div><button class="i" title="">i</button>
+      <input type="range" class="str" min="${sys.min}" max="${sys.max}" step="0.01">
+      ${sys.dir?`<div class="dirrow"><span class="fromL"></span><input type="range" class="dir" min="0" max="355" step="5"><b class="dirv"></b></div><div class="hint"></div>`:''}
+      ${sys.min<0?`<div class="ends"><span class="e0"></span><span class="e1"></span></div>`:''}
+      <div class="why"></div>
     </div>`).join('');
-  document.querySelectorAll('#sliders .sl').forEach(el=>{
-    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), inp=el.querySelector('input:not(.dir)'), dir=el.querySelector('input.dir');
-    const take=()=>{ if(MODE!=='sim'){ SIM={...(FIT?FIT.S:SIM)}; setMode('sim', true); } };
-    inp.oninput=()=>{ take(); SIM[sys.id]=+inp.value; syncSliders(); windRegrid(); };
-    if(dir) dir.oninput=()=>{ take(); SIM.synDir=+dir.value; if(!SIM[sys.id]) SIM[sys.id]=0.4; syncSliders(); windRegrid(); };
+  document.querySelectorAll('#sliders .sys').forEach(el=>{
+    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), inp=el.querySelector('input.str'), dir=el.querySelector('input.dir');
+    const take=()=>{ if(MODE!=='sim'){ SIM={...(FIT?FIT.S:SIM)}; MODE='sim'; } PRESET=''; };
+    inp.oninput=()=>{ take(); SIM[sys.id]=+inp.value; update(); };
+    if(dir) dir.oninput=()=>{ take(); SIM.synDir=+dir.value; if(!SIM.syn) SIM.syn=0.4; update(); };
+    el.querySelector('.i').onclick=()=>el.classList.toggle('open');
   });
+  document.getElementById('preset').onchange=e=>{ const k=e.target.value; if(!k){ PRESET=''; return; } PRESET=k; SIM={...PRESETS[k]}; MODE='sim'; update(); };
   document.querySelectorAll('#mode button').forEach(b=> b.onclick=()=>{
-    if(b.dataset.m==='sim' && MODE!=='sim' && FIT) SIM={...FIT.S};
-    setMode(b.dataset.m); });
-  syncSliders();
+    if(b.dataset.m===MODE) return;
+    if(b.dataset.m==='sim' && FIT) SIM={...FIT.S};
+    MODE=b.dataset.m; PRESET=''; update(); });
 }
-function syncSliders(){
-  const S = MODE==='sim' ? SIM : (FIT ? FIT.S : {});
-  document.querySelectorAll('#sliders .sl').forEach(el=>{
-    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), v=S[sys.id]||0;
-    el.querySelector('input:not(.dir)').value=v;
-    if(sys.dir){ const d=S.synDir??270; el.querySelector('input.dir').value=d; el.querySelector('.dirv').textContent=`${d}° ${dirName(d)}`; el.querySelector('.hint').textContent=synHint(d); }
-    el.querySelector('.slv').textContent = `${fmtS(sys,v)} · up to ${fmt(Math.abs(v)*sys.vmax)} ${ULABEL[UNIT]}`;
-    el.classList.toggle('active', Math.abs(v)>0.02);
+function syncPanel(){
+  const S=curS();
+  document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on', b.dataset.m===MODE));
+  document.getElementById('preset').value = PRESET;
+  document.querySelectorAll('#sliders .sys').forEach(el=>{
+    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), v=S[sys.id]||0, [nm,why]=T().sys[sys.id];
+    el.querySelector('.nm b').textContent=nm; el.querySelector('.why').textContent=why; el.querySelector('.i').title=why;
+    el.querySelector('input.str').value=v;
+    el.querySelector('.slv').textContent = `${fmtS(sys,v)} · ${T().upto} ${fmt(Math.abs(v)*sys.vmax)} ${ULABEL[UNIT]}`;
+    el.classList.toggle('off', Math.abs(v)<=0.02);
+    if(sys.dir){ const d=S.synDir??270; el.querySelector('input.dir').value=d; el.querySelector('.dirv').textContent=`${d}° ${dirName(d)}`;
+      el.querySelector('.fromL').textContent=T().from; el.querySelector('.hint').textContent=T().hints[synHintKey(d)]; }
+    if(sys.min<0){ const [e0,e1]=T().ends[sys.id]; el.querySelector('.e0').textContent=e0; el.querySelector('.e1').textContent=e1; }
   });
-  document.getElementById('modeNote').textContent = MODE==='sim'
-    ? 'Simulator: the flow shows only the wind systems you set. Station markers still show live data.'
-    : (FIT ? 'Live: large-scale direction and the strength of every system are fitted to the four stations right now (sliders show the fit). Move a slider to take over.' : 'Live: waiting for station data …');
+  document.getElementById('modeNote').textContent = MODE==='sim' ? T().noteSim : (FIT ? T().noteLive : T().noteWait);
 }
-function setMode(m, keep){
-  MODE=m;
-  document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on', b.dataset.m===m));
-  Object.values(MARKERS).forEach(mk=>mk.setOpacity(m==='sim'?0.35:1));
-  syncSliders(); windRegrid();
-}
+function update(){ syncPanel(); renderSystems(); Object.values(MARKERS).forEach(mk=>mk.setOpacity(MODE==='sim'?0.35:1)); windRegrid(); }
 
-// ---------- Boat: hold a fixed angle to the wind, never touch the sails ----------
-const BOAT = {placing:false, run:false, lat:0, lon:0, path:[], line:null, mk:null, turned:0, prevH:null, sec:0, n:0, raf:null, full:false};
-function lakeContains(lat, lon){
-  let inside=false;
-  for(let i=0,j=LAKE.length-1;i<LAKE.length;j=i++){ const [xi,yi]=LAKE[i], [xj,yj]=LAKE[j];
-    if(((yi>lat)!==(yj>lat)) && (lon < (xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside; }
-  return inside;
+// =================== static texts & language ===================
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = T()[el.dataset.i18n]; });
+  document.querySelectorAll('#lang button').forEach(b=>b.classList.toggle('on', b.dataset.l===LANG));
+  document.querySelector('#mode [data-m=live]').textContent=T().live; document.querySelector('#mode [data-m=sim]').textContent=T().sim;
+  document.getElementById('preset').innerHTML = `<option value="">${T().load}</option>` + Object.keys(PRESETS).map(k=>`<option value="${k}">${T().presets[k]}</option>`).join('');
+  document.getElementById('boatBtn').textContent=T().boatBtn; document.getElementById('boatClear').textContent=T().clear;
+  const twa=document.getElementById('twa'), tv=twa.value||'90'; twa.innerHTML=Object.entries(T().twa).map(([k,l])=>`<option value="${k}">${l}</option>`).join(''); twa.value=tv;
+  const tack=document.getElementById('tack'), kv=tack.value||'stbd'; tack.innerHTML=`<option value="stbd">${T().stbd}</option><option value="port">${T().port}</option>`; tack.value=kv;
+  document.getElementById('aboutText').innerHTML=T().aboutText;
+  syncAnimBtn(); render();
 }
-const boatSvg = h => `<svg width="34" height="34" viewBox="-17 -17 34 34" style="transform:rotate(${h}deg)"><path d="M0 -13 L6 9 L0 6 L-6 9Z" fill="#fff" stroke="#08131a" stroke-width="1.6"/></svg>`;
-function boatInfo(txt){ document.getElementById('boatInfo').innerHTML = txt; }
-function boatClear(){
-  BOAT.run=false; if(BOAT.raf) cancelAnimationFrame(BOAT.raf); BOAT.raf=null;
-  if(BOAT.line) MAP.removeLayer(BOAT.line); if(BOAT.mk) MAP.removeLayer(BOAT.mk); BOAT.line=BOAT.mk=null; boatInfo('');
-}
-function boatStart(lat, lon){
-  boatClear();
-  Object.assign(BOAT, {run:true, lat, lon, path:[[lat,lon]], turned:0, prevH:null, sec:0, n:0, full:false});
-  BOAT.line = L.polyline(BOAT.path, {color:'#ffffff', weight:2.5, opacity:0.9, dashArray:'1 6', lineCap:'round'}).addTo(MAP);
-  BOAT.mk = L.marker([lat,lon], {icon:L.divIcon({className:'', html:boatSvg(0), iconSize:[34,34], iconAnchor:[17,17]}), interactive:false, zIndexOffset:1000}).addTo(MAP);
-  BOAT.raf = requestAnimationFrame(boatFrame);
-}
-function boatFrame(){
-  BOAT.raf=null; if(!BOAT.run) return;
-  const twa=+document.getElementById('twa').value, tack=document.getElementById('tack').value==='stbd'?1:-1, dt=5;
-  let h=0, ws=0, stop='';
-  for(let k=0;k<5;k++){
-    const f=currentField(BOAT.lat, BOAT.lon); if(!f){ stop='no wind data'; break; }
-    ws=Math.hypot(f.u,f.v); const from=(Math.atan2(-f.u,-f.v)/DEG+360)%360;
-    h = tack>0 ? from-twa : from+twa;                    // starboard tack: wind comes over the right side
-    if(BOAT.prevH!=null) BOAT.turned += ((h-BOAT.prevH+540)%360)-180; BOAT.prevH=h;
-    const sp=clamp(0.45*ws, 0.3, 4.5), d=sp*dt;           // simple polar: ~45% of wind speed
-    BOAT.lat += d*Math.cos(h*DEG)/111200; BOAT.lon += d*Math.sin(h*DEG)/(111200*Math.cos(BOAT.lat*DEG));
-    BOAT.sec += dt;
-    if(!lakeContains(BOAT.lat, BOAT.lon)){ stop='reached the shore'; break; }
-  }
-  BOAT.path.push([BOAT.lat,BOAT.lon]); BOAT.n++;
-  if(BOAT.n%2===0) BOAT.line.setLatLngs(BOAT.path);
-  BOAT.mk.setLatLng([BOAT.lat,BOAT.lon]);
-  const el=BOAT.mk.getElement(); if(el) el.firstChild.style.transform=`rotate(${h}deg)`;
-  const turned=Math.abs(BOAT.turned);
-  if(turned>=360 && !BOAT.full) BOAT.full=true;
-  const tt = `${Math.floor(BOAT.sec/3600)} h ${String(Math.floor(BOAT.sec/60)%60).padStart(2,'0')} min`;
-  boatInfo(`Sails untouched (${twa}° to the wind, ${tack>0?'starboard':'port'} tack) · heading has turned <b>${Math.round(turned)}°</b> · ${tt} sailed${BOAT.full?' · <b class="ok">full circle!</b>':''}${stop?' · stopped: '+stop:''}`);
-  if(stop || turned>=720 || BOAT.n>6000){ BOAT.run=false; BOAT.line.setLatLngs(BOAT.path); return; }
-  BOAT.raf=requestAnimationFrame(boatFrame);
-}
-function boatSetup(){
-  document.getElementById('boatBtn').onclick=()=>{ BOAT.placing=true; MAP.getContainer().style.cursor='crosshair'; boatInfo('Click on the lake to put the boat in the water.'); };
-  document.getElementById('boatClear').onclick=boatClear;
-  MAP.on('click', e=>{ if(!BOAT.placing) return; BOAT.placing=false; MAP.getContainer().style.cursor='';
-    if(!lakeContains(e.latlng.lat, e.latlng.lng)){ boatInfo('That is not water – try again.'); return; }
-    boatStart(e.latlng.lat, e.latlng.lng); });
-}
+function syncAnimBtn(){ const b=document.getElementById('animToggle'); b.textContent = W.on ? T().animOn : T().animOff; b.classList.toggle('on', W.on); }
 
+// =================== animation ===================
+const LAKE = [[9.2961,47.6128],[9.3266,47.5933],[9.3437,47.5858],[9.3456,47.587],[9.3484,47.5839],[9.3821,47.5708],[9.384,47.5704],[9.3843,47.5707],[9.3847,47.5619],[9.3824,47.5645],[9.3842,47.5619],[9.3824,47.562],[9.3802,47.5543],[9.3866,47.5505],[9.3816,47.5477],[9.3867,47.5504],[9.3861,47.5475],[9.3906,47.5433],[9.4053,47.5363],[9.4222,47.5235],[9.4378,47.5186],[9.4395,47.5149],[9.4413,47.5139],[9.4415,47.5136],[9.4416,47.5133],[9.4395,47.5149],[9.4402,47.5125],[9.4379,47.5137],[9.439,47.5124],[9.4351,47.5117],[9.436,47.5064],[9.4458,47.5058],[9.4482,47.5013],[9.4535,47.5002],[9.4518,47.4993],[9.4693,47.4946],[9.4775,47.4896],[9.4793,47.4828],[9.4862,47.4799],[9.4993,47.4781],[9.5308,47.4803],[9.5324,47.4813],[9.5314,47.4827],[9.5325,47.483],[9.533,47.4812],[9.5389,47.482],[9.5442,47.4857],[9.5456,47.491],[9.5481,47.4898],[9.5479,47.4907],[9.547,47.4906],[9.5465,47.4911],[9.5464,47.4914],[9.5549,47.4961],[9.555,47.501],[9.5601,47.5011],[9.5613,47.5042],[9.56,47.4992],[9.5625,47.5042],[9.5624,47.5002],[9.5686,47.5013],[9.5709,47.4953],[9.5863,47.4907],[9.585,47.4885],[9.5857,47.4878],[9.5857,47.489],[9.5866,47.4901],[9.587,47.4877],[9.6028,47.4895],[9.6091,47.4879],[9.6087,47.4907],[9.6132,47.4922],[9.6129,47.4908],[9.6132,47.4906],[9.6157,47.4956],[9.624,47.4945],[9.6336,47.503],[9.6446,47.5071],[9.6472,47.5061],[9.6454,47.5032],[9.6379,47.4991],[9.6407,47.4924],[9.6504,47.4872],[9.6487,47.4902],[9.6546,47.4925],[9.6619,47.4907],[9.6616,47.4886],[9.6676,47.4864],[9.664,47.4882],[9.6642,47.4917],[9.6625,47.492],[9.6622,47.4912],[9.662,47.4912],[9.6626,47.4922],[9.6664,47.4913],[9.668,47.4916],[9.6621,47.4947],[9.6683,47.4945],[9.665,47.4977],[9.6666,47.503],[9.6549,47.5082],[9.6571,47.5108],[9.6497,47.5155],[9.6477,47.5144],[9.6487,47.5162],[9.6433,47.5248],[9.646,47.526],[9.6517,47.5208],[9.6516,47.5177],[9.6615,47.5134],[9.6607,47.5123],[9.6705,47.5056],[9.6724,47.4989],[9.6787,47.4979],[9.6853,47.5018],[9.6787,47.4973],[9.6787,47.4935],[9.681,47.4919],[9.6878,47.4928],[9.6851,47.4968],[9.6853,47.4999],[9.6861,47.5007],[9.6869,47.4953],[9.6882,47.495],[9.6874,47.4973],[9.6892,47.4972],[9.6875,47.4979],[9.6894,47.4976],[9.6898,47.5003],[9.6849,47.5041],[9.6919,47.5066],[9.728,47.5075],[9.7419,47.5044],[9.7458,47.5056],[9.7463,47.5085],[9.7506,47.5085],[9.7538,47.5151],[9.7508,47.5217],[9.7417,47.5296],[9.7415,47.5282],[9.7366,47.5317],[9.73,47.5336],[9.7289,47.5324],[9.7281,47.5329],[9.7274,47.5346],[9.7317,47.5343],[9.7283,47.5346],[9.723,47.5446],[9.7127,47.5505],[9.7044,47.5488],[9.7011,47.5511],[9.6928,47.5497],[9.6829,47.552],[9.6813,47.5486],[9.6915,47.5482],[9.6862,47.5449],[9.6884,47.544],[9.6809,47.5422],[9.6753,47.5458],[9.6804,47.548],[9.6825,47.5525],[9.6794,47.5568],[9.6536,47.5567],[9.6439,47.5613],[9.6393,47.5668],[9.6293,47.5662],[9.6308,47.5694],[9.6275,47.571],[9.6143,47.5697],[9.6067,47.5735],[9.6074,47.5761],[9.6024,47.5841],[9.5963,47.5883],[9.5726,47.5841],[9.5505,47.5878],[9.5298,47.603],[9.5267,47.6154],[9.518,47.6214],[9.5157,47.6339],[9.4953,47.6498],[9.4878,47.6511],[9.4827,47.6487],[9.4859,47.6519],[9.4821,47.6486],[9.4717,47.6513],[9.4628,47.6484],[9.4523,47.655],[9.4354,47.6566],[9.4209,47.6657],[9.4072,47.6683],[9.3927,47.6682],[9.3873,47.6645],[9.3701,47.6653],[9.3675,47.6621],[9.3653,47.6634],[9.3569,47.6601],[9.3492,47.661],[9.3326,47.6667]]; // OSM outline of the eastern Obersee [lon,lat]
+const PCOL = ['#7fb3c8','#4fc3a1','#c9d85a','#f2a93b','#ef5b4c'];
+const pBin = ms => ms<3.4?0 : ms<5.5?1 : ms<8?2 : ms<12.9?3 : 4;
+const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const W = { on: !REDUCED, cv:null, ctx:null, dpr:1, path:null, grid:null, gw:0, gh:0, step:12, parts:[], raf:null, t:0, moving:false, ready:false };
 function windSetup(){
-  if(!MAP) return;
-  if(!W.cv){
-    W.cv=document.createElement('canvas');
-    W.cv.style.cssText='position:absolute;inset:0;z-index:450;pointer-events:none;transition:opacity .25s';
-    MAP.getContainer().appendChild(W.cv);
-    W.ctx=W.cv.getContext('2d');
-    MAP.on('movestart zoomstart', ()=>{ W.moving=true; W.cv.style.opacity=0; });
-    MAP.on('moveend zoomend resize', ()=>{ W.moving=false; windRebuild(); W.cv.style.opacity=1; });
-    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) windStart(); });
-    const btn=document.getElementById('animToggle');
-    const sync=()=>{ btn.textContent = W.on ? 'Animation: on' : 'Animation: off'; btn.classList.toggle('on',W.on); };
-    btn.onclick=()=>{ W.on=!W.on; sync(); if(W.on) windStart(); else { cancelAnimationFrame(W.raf); W.raf=null; W.ctx.clearRect(0,0,W.cv.width,W.cv.height); } };
-    sync(); buildPanel(); boatSetup();
-  }
-  windRebuild(); windStart();
+  if(!MAP || W.cv) return;
+  W.cv=document.createElement('canvas');
+  W.cv.style.cssText='position:absolute;inset:0;z-index:450;pointer-events:none;transition:opacity .25s';
+  MAP.getContainer().appendChild(W.cv); W.ctx=W.cv.getContext('2d');
+  MAP.on('movestart zoomstart', ()=>{ W.moving=true; W.cv.style.opacity=0; });
+  MAP.on('moveend zoomend resize', ()=>{ W.moving=false; windRebuild(); W.cv.style.opacity=1; });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) windStart(); });
+  windRebuild();
 }
 function windRebuild(){
+  if(!W.cv) return;
   const size=MAP.getSize(); W.dpr=Math.min(window.devicePixelRatio||1, 2);
   W.cv.width=size.x*W.dpr; W.cv.height=size.y*W.dpr; W.cv.style.width=size.x+'px'; W.cv.style.height=size.y+'px';
   const p=new Path2D();
   LAKE.forEach(([lo,la],i)=>{ const q=MAP.latLngToContainerPoint([la,lo]); i?p.lineTo(q.x*W.dpr,q.y*W.dpr):p.moveTo(q.x*W.dpr,q.y*W.dpr); });
   p.closePath(); W.path=p;
-  windRegrid();
-  // particle count scales with visible lake area
-  let inside=0, probe=400;
+  let inside=0; const probe=400;
   for(let k=0;k<probe;k++) if(W.ctx.isPointInPath(W.path, Math.random()*W.cv.width, Math.random()*W.cv.height)) inside++;
-  const lakePx=(inside/probe)*size.x*size.y;
-  const n=Math.max(150, Math.min(2600, Math.round(lakePx/70)));
+  const n=Math.max(150, Math.min(2600, Math.round((inside/probe)*size.x*size.y/70)));
   W.parts=[]; for(let k=0;k<n;k++) W.parts.push(spawn({}, true));
   W.ctx.clearRect(0,0,W.cv.width,W.cv.height);
+  windRegrid();
+}
+function windRegrid(){
+  if(!W.cv) return;
+  const st=W.step*W.dpr; W.gw=Math.ceil(W.cv.width/st)+1; W.gh=Math.ceil(W.cv.height/st)+1;
+  W.grid=new Array(W.gw*W.gh); let any=false;
+  for(let j=0;j<W.gh;j++) for(let i=0;i<W.gw;i++){
+    const ll=MAP.containerPointToLatLng([i*st/W.dpr, j*st/W.dpr]); const f=windField(ll.lat, ll.lng); W.grid[j*W.gw+i]=f; if(f) any=true; }
+  W.ready=any; if(!any) W.ctx.clearRect(0,0,W.cv.width,W.cv.height); windStart();
 }
 function spawn(p, randomAge){
-  for(let k=0;k<30;k++){
-    const x=Math.random()*W.cv.width, y=Math.random()*W.cv.height;
-    if(W.ctx.isPointInPath(W.path,x,y)){ p.x=x; p.y=y; break; }
-  }
+  p.x=null;
+  for(let k=0;k<30;k++){ const x=Math.random()*W.cv.width, y=Math.random()*W.cv.height; if(W.ctx.isPointInPath(W.path,x,y)){ p.x=x; p.y=y; break; } }
   if(p.x==null){ p.x=Math.random()*W.cv.width; p.y=Math.random()*W.cv.height; }
-  p.max=35+Math.random()*70; p.age=randomAge?Math.random()*p.max:0; p.px=p.x; p.py=p.y;
-  return p;
+  p.max=35+Math.random()*70; p.age=randomAge?Math.random()*p.max:0; p.px=p.x; p.py=p.y; return p;
 }
-function sample(x,y){
-  const st=W.step*W.dpr, i=Math.round(x/st), j=Math.round(y/st);
-  if(i<0||j<0||i>=W.gw||j>=W.gh) return null; return W.grid[j*W.gw+i];
-}
+function sample(x,y){ const st=W.step*W.dpr, i=Math.round(x/st), j=Math.round(y/st); if(i<0||j<0||i>=W.gw||j>=W.gh) return null; return W.grid[j*W.gw+i]; }
 function windFrame(){
   W.raf=null;
   if(!W.on || document.hidden || !W.ready) return;
   if(!W.moving){
     const c=W.ctx, t=(W.t+=1/60), d=W.dpr;
-    // fade previous frame -> trails
     c.globalCompositeOperation='destination-in'; c.fillStyle='rgba(0,0,0,0.86)'; c.fillRect(0,0,W.cv.width,W.cv.height);
-    c.globalCompositeOperation='source-over';
-    c.save(); c.clip(W.path);
+    c.globalCompositeOperation='source-over'; c.save(); c.clip(W.path);
     const bins=[[],[],[],[],[]];
     for(const p of W.parts){
-      const f=sample(p.x,p.y);
-      if(!f || ++p.age>p.max){ spawn(p,false); continue; }
-      // travelling gust cells + slight direction wobble
+      const f=sample(p.x,p.y); if(!f || ++p.age>p.max){ spawn(p,false); continue; }
       const gx=p.x/d, gy=p.y/d;
       const g=0.5+0.5*Math.sin(gx*0.011 - f.ux*t*2.2 + Math.sin(gy*0.007+t*0.3)*1.7) * Math.sin(gy*0.013 + f.uy*t*2.2 + 0.8);
       const sp=f.mean + (f.gust-f.mean)*g*g;
-      const wob=(Math.sin(gx*0.009+gy*0.006+t*0.5)*0.22 + Math.sin(gx*0.021-gy*0.017-t*0.9)*0.12);
-      const cs=Math.cos(wob), sn=Math.sin(wob);
-      const ux=f.ux*cs - f.uy*sn, uy=f.ux*sn + f.uy*cs;
-      const k=(0.3+sp*0.24)*d;            // time-lapse: px per frame
+      const wob=(Math.sin(gx*0.009+gy*0.006+t*0.5)*0.22 + Math.sin(gx*0.021-gy*0.017-t*0.9)*0.12), cs=Math.cos(wob), sn=Math.sin(wob);
+      const ux=f.ux*cs - f.uy*sn, uy=f.ux*sn + f.uy*cs, k=(0.3+sp*0.24)*d;
       p.px=p.x; p.py=p.y; p.x+=ux*k; p.y-=uy*k;
       if(!c.isPointInPath(W.path,p.x,p.y)){ spawn(p,false); continue; }
       bins[pBin(sp)].push(p);
     }
     c.lineWidth=1.25*d; c.lineCap='round';
-    bins.forEach((b,i)=>{ if(!b.length) return; c.strokeStyle=PCOL[i]; c.globalAlpha=0.75; c.beginPath();
-      for(const p of b){ c.moveTo(p.px,p.py); c.lineTo(p.x,p.y); } c.stroke(); });
+    bins.forEach((b,i)=>{ if(!b.length) return; c.strokeStyle=PCOL[i]; c.globalAlpha=0.75; c.beginPath(); for(const p of b){ c.moveTo(p.px,p.py); c.lineTo(p.x,p.y); } c.stroke(); });
     c.globalAlpha=1; c.restore();
   }
   W.raf=requestAnimationFrame(windFrame);
 }
 function windStart(){ if(W.on && !W.raf && W.ready) W.raf=requestAnimationFrame(windFrame); }
-function render(){ renderSummary(); renderMap(); renderList(); if(window.L && MAP){ windSetup(); Object.values(MARKERS).forEach(mk=>mk.setOpacity(MODE==='sim'?0.35:1)); syncSliders(); } }
 
-document.querySelectorAll('#units button').forEach(b=>{
-  b.classList.toggle('on', b.dataset.u===UNIT);
-  b.onclick=()=>{ UNIT=b.dataset.u; try{localStorage.setItem('wind-unit',UNIT)}catch(e){}
-    document.querySelectorAll('#units button').forEach(x=>x.classList.toggle('on',x===b)); render(); };
-});
+// =================== boat ===================
+const BOAT = {placing:false, run:false, lat:0, lon:0, path:[], line:null, mk:null, turned:0, prevH:null, sec:0, n:0, full:false, raf:null};
+function lakeContains(lat, lon){ let inside=false;
+  for(let i=0,j=LAKE.length-1;i<LAKE.length;j=i++){ const [xi,yi]=LAKE[i], [xj,yj]=LAKE[j];
+    if(((yi>lat)!==(yj>lat)) && (lon < (xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside; } return inside; }
+const boatSvg = h => `<svg width="30" height="30" viewBox="-15 -15 30 30" style="transform:rotate(${h}deg)"><path d="M0 -12 L6 8 L0 5 L-6 8Z" fill="#fff" stroke="#08131a" stroke-width="1.6"/></svg>`;
+const boatInfo = txt => { document.getElementById('boatInfo').innerHTML = txt; };
+function boatClear(){ BOAT.run=false; if(BOAT.raf) cancelAnimationFrame(BOAT.raf); BOAT.raf=null;
+  if(BOAT.line) MAP.removeLayer(BOAT.line); if(BOAT.mk) MAP.removeLayer(BOAT.mk); BOAT.line=BOAT.mk=null; boatInfo(''); }
+function boatStart(lat, lon){
+  boatClear(); Object.assign(BOAT, {run:true, lat, lon, path:[[lat,lon]], turned:0, prevH:null, sec:0, n:0, full:false});
+  BOAT.line = L.polyline(BOAT.path, {color:'#fff', weight:2.5, opacity:0.9, dashArray:'1 6', lineCap:'round', interactive:false}).addTo(MAP);
+  BOAT.mk = L.marker([lat,lon], {icon:L.divIcon({className:'', html:boatSvg(0), iconSize:[30,30], iconAnchor:[15,15]}), interactive:false, zIndexOffset:1000}).addTo(MAP);
+  BOAT.raf = requestAnimationFrame(boatFrame);
+}
+function boatFrame(){
+  BOAT.raf=null; if(!BOAT.run) return;
+  const twa=+document.getElementById('twa').value, tack=document.getElementById('tack').value==='stbd'?1:-1, dt=5;
+  let h=BOAT.prevH||0, stop='';
+  for(let k=0;k<5;k++){
+    const f=currentField(BOAT.lat, BOAT.lon); if(!f){ stop=T().nowind; break; }
+    const ws=Math.hypot(f.u,f.v), from=(Math.atan2(-f.u,-f.v)/DEG+360)%360;
+    h = tack>0 ? from-twa : from+twa;                           // starboard tack: wind over the right side
+    if(BOAT.prevH!=null) BOAT.turned += ((h-BOAT.prevH+540)%360)-180; BOAT.prevH=h;
+    const d=clamp(0.45*ws, 0.3, 4.5)*dt;                         // simple polar: ~45 % of wind speed
+    BOAT.lat += d*Math.cos(h*DEG)/111200; BOAT.lon += d*Math.sin(h*DEG)/(111200*Math.cos(BOAT.lat*DEG)); BOAT.sec += dt;
+    if(!lakeContains(BOAT.lat, BOAT.lon)){ stop=T().shore; break; }
+  }
+  BOAT.path.push([BOAT.lat,BOAT.lon]); BOAT.n++;
+  if(BOAT.n%2===0) BOAT.line.setLatLngs(BOAT.path);
+  BOAT.mk.setLatLng([BOAT.lat,BOAT.lon]); const el=BOAT.mk.getElement(); if(el && el.firstChild) el.firstChild.style.transform=`rotate(${h}deg)`;
+  const turned=Math.abs(BOAT.turned); if(turned>=360) BOAT.full=true;
+  const tt=`${Math.floor(BOAT.sec/3600)} h ${String(Math.floor(BOAT.sec/60)%60).padStart(2,'0')} min`;
+  boatInfo(T().boatInfo(twa, tack>0?T().stbd:T().port, Math.round(turned), tt, BOAT.full, stop));
+  if(stop || turned>=720 || BOAT.n>6000){ BOAT.run=false; BOAT.line.setLatLngs(BOAT.path); return; }
+  BOAT.raf=requestAnimationFrame(boatFrame);
+}
+function boatClick(e){
+  if(!BOAT.placing) return; BOAT.placing=false; MAP.getContainer().style.cursor='';
+  if(!lakeContains(e.latlng.lat, e.latlng.lng)){ boatInfo(T().notWater); return; }
+  boatStart(e.latlng.lat, e.latlng.lng);
+}
+
+// =================== wiring ===================
+let PANEL=false;
+function render(){
+  document.getElementById('updated').textContent = UPDATED ? `${T().sub} · ${T().updated(hhmm(UPDATED))}` : `${T().sub} · ${T().loading}`;
+  renderSummary(); renderList();
+  if(window.L){ renderMap(); windSetup(); if(!PANEL){ buildPanel(); PANEL=true; } syncPanel(); renderSystems(); windRegrid(); }
+}
+document.querySelectorAll('#units button').forEach(b=>{ b.onclick=()=>{ UNIT=b.dataset.u; try{localStorage.setItem('wind-unit',UNIT)}catch(e){}
+  document.querySelectorAll('#units button').forEach(x=>x.classList.toggle('on',x===b)); render(); }; b.classList.toggle('on', b.dataset.u===UNIT); });
+document.querySelectorAll('#lang button').forEach(b=> b.onclick=()=>{ LANG=b.dataset.l; try{localStorage.setItem('wind-lang',LANG)}catch(e){} applyLang(); });
+document.getElementById('animToggle').onclick=()=>{ W.on=!W.on; syncAnimBtn(); if(W.on) windStart(); else { cancelAnimationFrame(W.raf); W.raf=null; W.ctx&&W.ctx.clearRect(0,0,W.cv.width,W.cv.height); } };
 document.getElementById('reload').onclick = loadAll;
-render(); loadAll(); setInterval(loadAll, 5*60e3);
+document.getElementById('boatBtn').onclick=()=>{ BOAT.placing=true; if(MAP) MAP.getContainer().style.cursor='crosshair'; boatInfo(T().placing); };
+document.getElementById('boatClear').onclick=boatClear;
+applyLang(); loadAll(); setInterval(loadAll, 5*60e3);
 </script>
 </body>
 </html>
