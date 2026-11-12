@@ -40,3 +40,20 @@ The animated flow is not an interpolation but a conceptual model: one large-scal
 - **Boat**: drop a boat that holds a fixed angle to the wind (sails never touched) and watch its track. In the "Calm night" scenario the land-breeze convergence makes it sail a full circle.
 
 Sources for the assumptions: Gohm, Siller & Bär (2015), *Nature and climatology of Pfänderwind*, Meteorol. Z. 24(3); MeteoSwiss/SRF on Rhine Valley föhn reaching Rorschach–Altenrhein; DWD on the land–lake breeze at Friedrichshafen; ZAMG/vol.at report of a "mini convergence" over the eastern lake.
+
+## Catchment stations
+
+Stations in the source areas of the wind systems steer the live fit as indicators (component from the system's source direction ÷ assumed typical speed → target strength):
+
+| Station | Source | Feeds |
+|---|---|---|
+| Friedrichshafen | DWD 01490 via Bright Sky | large-scale wind (also used as a lake station) |
+| Güttingen | MeteoSwiss GUT | large-scale wind (upstream, stand-in for Konstanz) |
+| Säntis 2501 m | MeteoSwiss SAE | large-scale wind (free atmosphere, lower weight) |
+| Vaduz, Bad Ragaz | MeteoSwiss VAD, RAG | Rhine Valley föhn / valley breeze |
+| Dornbirn | GeoSphere 11302 | Rhine Valley |
+| Alberschwende | GeoSphere 11301 | Bregenzerwald |
+| Sulzberg 1016 m | GeoSphere 11100 | Pfänder downslope wind |
+| St. Gallen | MeteoSwiss STG | Appenzell hills |
+
+Konstanz is not included: Bright Sky currently has no wind for DWD 02712, and opendata.dwd.de does not allow cross-origin browser requests.

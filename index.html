@@ -56,6 +56,11 @@
   .st .val{text-align:right;font-family:'JetBrains Mono',monospace;font-size:16px;line-height:1.1}
   .st .val small{display:block;font-size:10px;color:var(--mute);font-family:Inter,sans-serif}
   .st svg.spark{width:84px;height:26px}
+  .cs{display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:center;padding:2px 0;cursor:pointer}
+  .cs .nm{font-size:12px;line-height:1.2} .cs .nm span{display:block;font-size:10px;color:var(--mute)}
+  .cs .nm i{font-style:normal;color:var(--c)}
+  .cs .val{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right}
+  .cs.old{opacity:.45}
   .st.stale{opacity:.5}
   .err{color:var(--b4);font-size:11px}
   .mini{width:28px;height:28px}
@@ -126,6 +131,7 @@
     <aside>
       <div class="card"><div class="summary" id="summary"></div></div>
       <div class="card"><h2><span data-i18n="stations"></span><span class="r" data-i18n="last3h"></span></h2><div id="list"></div></div>
+      <div class="card"><h2><span data-i18n="catchment"></span><span class="r" data-i18n="catchHint"></span></h2><div id="catch"></div></div>
       <div class="card">
         <h2 data-i18n="systems"></h2>
         <div class="row">
@@ -155,11 +161,11 @@ const I18N = {
   warn34:'Gusts ≥ 34 kn (storm level)', warn25:'Gusts ≥ 25 kn (strong wind)', warn0:'Below strong-wind level',
   live:'Live (fitted)', sim:'Simulator', load:'Load scenario …',
   noteSim:'Simulator: the flow shows only the systems you set. Station markers still show live data.',
-  noteLive:'Live: direction and strength of every system are fitted to the four stations (bars show the fit). Move a slider to take over.',
+  noteLive:'Live: fitted to the lake stations (incl. Friedrichshafen) and steered by the catchment stations (◆ = their estimate). Move a slider to take over.',
   noteWait:'Live: waiting for station data …', from:'from', upto:'up to',
   addBoat:'+ Boat', boatName:n=>`Boat ${n}`, stbS:'Stbd', portS:'Port', stbd:'starboard tack', port:'port tack', play:'Sail / pause', restart:'Restart from start point', remove:'Remove',
   boatHint:'Add a boat and tap the lake. Boats keep a fixed angle to the wind – drag them to move, change angle or tack any time.', limit:'2 turns',
-  colorBy:'Colour', bySpeed:'speed', bySys:'wind system',
+  colorBy:'Colour', bySpeed:'speed', bySys:'wind system', catchment:'Catchment stations', catchHint:'feed the model', showCatch:'⤢ Catchment', showLake:'⤡ Lake',
   twa:{45:'45° close-hauled',60:'60° close reach',90:'90° beam reach',120:'120° broad reach',160:'160° running'},
   placing:'Tap on the lake to put the boat in the water.', notWater:'That is not water – try again.',
   boatInfo:(turn,tt,full,stop)=>`Heading turned <b>${turn}°</b> with untouched sails · ${tt}${full?' · <b class="ok">full circle!</b>':''}${stop?' · '+stop:''}`,
@@ -167,6 +173,7 @@ const I18N = {
   legendArrow:'Arrows point where the wind blows to', synTitle:'Large-scale', calm:'calm',
   about:'About, model & sources',
   aboutText:`<p>Observations: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data), <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>, <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-min means; gust = peak within the interval. Refreshes every 5 minutes. Map: Esri, © OpenStreetMap contributors.</p>
+  <p>Catchment stations act as indicators: the wind component from a system's source direction, divided by an assumed typical speed, gives a target strength for that system (Vaduz, Bad Ragaz, Dornbirn → Rhine Valley; Alberschwende → Bregenzerwald; Sulzberg → Pfänder; St. Gallen → Appenzell hills; Friedrichshafen, Güttingen and Säntis → large-scale wind). Friedrichshafen also counts as a lake station. Konstanz is not included: no open real-time wind data that a browser can read.</p>
   <p>The animated flow is a model, not a measurement: a large-scale wind with adjustable direction that the terrain reshapes, plus six local systems with assumed shapes. In live mode their strengths are fitted to the four stations (bounded least squares) and remaining differences are blended in near each station; motion is sped up. Assumptions draw on Gohm et al. (2015, Pfänderwind), MeteoSwiss/SRF (Rhine Valley föhn), DWD (land–lake breeze) and a ZAMG report of a convergence over the eastern lake.</p>
   <p>Prototype – not an official storm warning. Always follow the storm warning lights.</p>`,
   dirs:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'], locale:'en-GB',
@@ -190,11 +197,11 @@ const I18N = {
   warn34:'Böen ≥ 34 kn (Sturm)', warn25:'Böen ≥ 25 kn (Starkwind)', warn0:'Unter Starkwindniveau',
   live:'Live (angepasst)', sim:'Simulator', load:'Szenario laden …',
   noteSim:'Simulator: Die Strömung zeigt nur die eingestellten Systeme. Die Stationen zeigen weiter Live-Daten.',
-  noteLive:'Live: Richtung und Stärke aller Systeme werden an die vier Stationen angepasst (Balken zeigen den Fit). Einen Regler bewegen, um selbst zu übernehmen.',
+  noteLive:'Live: angepasst an die Seestationen (inkl. Friedrichshafen) und gelenkt von den Stationen im Einzugsgebiet (◆ = deren Schätzung). Einen Regler bewegen, um selbst zu übernehmen.',
   noteWait:'Live: warte auf Stationsdaten …', from:'aus', upto:'bis',
   addBoat:'+ Boot', boatName:n=>`Boot ${n}`, stbS:'Stb', portS:'Bb', stbd:'Steuerbordbug', port:'Backbordbug', play:'Segeln / Pause', restart:'Neu ab Startpunkt', remove:'Entfernen',
   boatHint:'Boot hinzufügen und auf den See tippen. Boote halten einen festen Winkel zum Wind – zum Versetzen ziehen, Winkel und Bug jederzeit ändern.', limit:'2 Runden',
-  colorBy:'Farbe', bySpeed:'Stärke', bySys:'Windsystem',
+  colorBy:'Farbe', bySpeed:'Stärke', bySys:'Windsystem', catchment:'Einzugsgebiet', catchHint:'fließen ins Modell ein', showCatch:'⤢ Einzugsgebiet', showLake:'⤡ See',
   twa:{45:'45° hoch am Wind',60:'60° am Wind',90:'90° halber Wind',120:'120° raumschots',160:'160° vor dem Wind'},
   placing:'Tippe auf den See, um das Boot ins Wasser zu setzen.', notWater:'Das ist kein Wasser – nochmal versuchen.',
   boatInfo:(turn,tt,full,stop)=>`Kurs gedreht um <b>${turn}°</b> ohne Segel anzufassen · ${tt}${full?' · <b class="ok">einmal im Kreis!</b>':''}${stop?' · '+stop:''}`,
@@ -202,6 +209,7 @@ const I18N = {
   legendArrow:'Pfeile zeigen, wohin der Wind weht', synTitle:'Großwetterlage', calm:'still',
   about:'Info, Modell & Quellen',
   aboutText:`<p>Messwerte: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, Rohdaten), <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Quelle: MeteoSchweiz</a>, <a href="https://brightsky.dev">DWD über Bright Sky</a>. 10-Minuten-Mittel; Böe = Spitze im Intervall. Aktualisierung alle 5 Minuten. Karte: Esri, © OpenStreetMap-Mitwirkende.</p>
+  <p>Stationen im Einzugsgebiet dienen als Indikatoren: Die Windkomponente aus der Quellrichtung eines Systems, geteilt durch eine angenommene typische Geschwindigkeit, ergibt eine Zielstärke für dieses System (Vaduz, Bad Ragaz, Dornbirn → Rheintal; Alberschwende → Bregenzerwald; Sulzberg → Pfänder; St. Gallen → Appenzeller Hänge; Friedrichshafen, Güttingen und Säntis → Großwetterlage). Friedrichshafen zählt zusätzlich als Seestation. Konstanz fehlt: Es gibt dort keine offenen Echtzeit-Winddaten, die ein Browser lesen kann.</p>
   <p>Die animierte Strömung ist ein Modell, keine Messung: eine Großwetterlage mit einstellbarer Richtung, die vom Gelände verformt wird, plus sechs lokale Systeme mit angenommener Form. Im Live-Modus werden ihre Stärken an die vier Stationen angepasst (beschränkte Ausgleichsrechnung), Restabweichungen werden nahe jeder Station eingerechnet; die Bewegung läuft im Zeitraffer. Grundlagen: Gohm et al. (2015, Pfänderwind), MeteoSchweiz/SRF (Rheintal-Föhn), DWD (Land-See-Wind) und ein ZAMG-Bericht über eine Konvergenz über dem Ostsee.</p>
   <p>Prototyp – keine offizielle Sturmwarnung. Maßgeblich sind die Sturmwarnleuchten.</p>`,
   dirs:['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'], locale:'de-AT',
@@ -243,7 +251,7 @@ const SYSCOL = {syn:'#9fb4ff', rheintal:'#ef8a5b', rhein:'#5bc0ef', wald:'#7bd88
 // =================== data ===================
 async function loadGeoSphere(){
   const end = new Date(), start = new Date(end - 3*3600e3), iso = d => d.toISOString().slice(0,16);
-  const ids = STATIONS.filter(s=>s.gs).map(s=>s.gs).join(',');
+  const ids = [...STATIONS, ...CATCH].filter(s=>s.gs).map(s=>s.gs).join(',');
   const j = await fetch(`https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min?parameters=DD,FF,FFX&station_ids=${ids}&start=${iso(start)}&end=${iso(end)}`)
     .then(r=>{ if(!r.ok) throw new Error('GeoSphere '+r.status); return r.json(); });
   const ts = j.timestamps.map(t=>new Date(t)), out = {};
@@ -251,8 +259,9 @@ async function loadGeoSphere(){
     out[f.properties.station] = ts.map((t,i)=>({t, dd:p.DD.data[i], ff:p.FF.data[i], fx:p.FFX.data[i]})).filter(r=>r.ff!=null); }
   return out;
 }
-async function loadMeteoSwiss(){
-  const txt = await fetch('https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/arh/ogd-smn_arh_t_now.csv').then(r=>{ if(!r.ok) throw new Error('MeteoSwiss '+r.status); return r.text(); });
+async function loadMeteoSwiss(code){
+  const c=code.toLowerCase();
+  const txt = await fetch(`https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${c}/ogd-smn_${c}_t_now.csv`).then(r=>{ if(!r.ok) throw new Error('MeteoSwiss '+r.status); return r.text(); });
   const lines = txt.trim().split(/\r?\n/), h = lines[0].split(';');
   const iT=h.indexOf('reference_timestamp'), iF=h.indexOf('fkl010z0'), iD=h.indexOf('dkl010z0'), iX=h.indexOf('fkl010z1');
   const num = v => v===''||v==null ? null : +v;
@@ -260,24 +269,31 @@ async function loadMeteoSwiss(){
     return {t:new Date(`${y}-${m}-${d}T${t}:00Z`), ff:num(c[iF]), dd:num(c[iD]), fx:num(c[iX])}; }).filter(r=>r.ff!=null);
   return rows.filter(r=>r.t>=Date.now()-3*3600e3);
 }
-async function loadDWD(){
-  const j = await fetch('https://api.brightsky.dev/current_weather?dwd_station_id=06102').then(r=>{ if(!r.ok) throw new Error('DWD '+r.status); return r.json(); });
+async function loadDWD(id){
+  const j = await fetch(`https://api.brightsky.dev/current_weather?dwd_station_id=${id}`).then(r=>{ if(!r.ok) throw new Error('DWD '+r.status); return r.json(); });
   const w = j.weather, k = v => v==null ? null : v/3.6; // Bright Sky returns km/h
+  if(w.wind_speed_10==null) throw new Error('DWD no wind');
   return [{t:new Date(w.timestamp), ff:k(w.wind_speed_10), dd:w.wind_direction_10, fx:k(w.wind_gust_speed_10)}];
 }
+// DWD via Bright Sky only gives the current value: keep a short history in this browser
+function dwdHistory(key, cur){
+  let hist=[]; try{ hist=JSON.parse(localStorage.getItem(key)||'[]').map(r=>({...r,t:new Date(r.t)})); }catch(e){}
+  if(!hist.length || +hist[hist.length-1].t !== +cur.t) hist.push(cur);
+  hist = hist.filter(r=>r.t>=Date.now()-3*3600e3); try{ localStorage.setItem(key, JSON.stringify(hist)); }catch(e){}
+  return hist;
+}
+const MS_CODES = {altenrhein:'ARH', gut:'GUT', sae:'SAE', vad:'VAD', rag:'RAG', stg:'STG'};
 let DATA = {}, ERR = {}, UPDATED = null;
 async function loadAll(){
   document.getElementById('updated').textContent = T().loading;
-  const [gs, ms, dwd] = await Promise.allSettled([loadGeoSphere(), loadMeteoSwiss(), loadDWD()]);
+  const msKeys = Object.keys(MS_CODES);
+  const [gs, dwdL, dwdF, ...ms] = await Promise.allSettled([loadGeoSphere(), loadDWD('06102'), loadDWD('01490'), ...msKeys.map(k=>loadMeteoSwiss(MS_CODES[k]))]);
   DATA = {}; ERR = {};
-  if(gs.status==='fulfilled'){ DATA.bregenz=gs.value['11101']||[]; DATA.rohrspitz=gs.value['11299']||[]; } else { ERR.bregenz=ERR.rohrspitz=gs.reason.message; }
-  if(ms.status==='fulfilled') DATA.altenrhein=ms.value; else ERR.altenrhein=ms.reason.message;
-  if(dwd.status==='fulfilled'){
-    let hist=[]; try{ hist=JSON.parse(localStorage.getItem('wind-lindau')||'[]').map(r=>({...r,t:new Date(r.t)})); }catch(e){}
-    const cur = dwd.value[0]; if(!hist.length || +hist[hist.length-1].t !== +cur.t) hist.push(cur);
-    hist = hist.filter(r=>r.t>=Date.now()-3*3600e3); try{ localStorage.setItem('wind-lindau', JSON.stringify(hist)); }catch(e){}
-    DATA.lindau = hist;
-  } else ERR.lindau=dwd.reason.message;
+  const gsIds = [...STATIONS, ...CATCH].filter(s=>s.gs);
+  if(gs.status==='fulfilled') gsIds.forEach(st=>DATA[st.id]=gs.value[st.gs]||[]); else gsIds.forEach(st=>ERR[st.id]=gs.reason.message);
+  if(dwdL.status==='fulfilled') DATA.lindau=dwdHistory('wind-lindau', dwdL.value[0]); else ERR.lindau=dwdL.reason.message;
+  if(dwdF.status==='fulfilled') DATA.fn=dwdHistory('wind-fn', dwdF.value[0]); else ERR.fn=dwdF.reason.message;
+  ms.forEach((r,i)=>{ const k=msKeys[i]; if(r.status==='fulfilled') DATA[k]=r.value; else ERR[k]=r.reason.message; });
   UPDATED = new Date(); refit(); render();
 }
 
@@ -357,34 +373,62 @@ const SYSTEMS = [
 ];
 // Wind from a set of strengths at local km coordinates
 function modelUV(x,y, S){
-  let u=0, v=0, gw=0, g=0, dom=null, dm=0;
+  let u=0, v=0, gw=0, g=0;
   for(const sys of SYSTEMS){ const s = S[sys.id]||0; if(!s) continue;
     const [a,b] = sys.f(x,y,S.synDir??270); const k = s*sys.vmax; u += a*k; v += b*k;
-    const m = Math.hypot(a*k,b*k); gw += m; g += m*sys.gust; if(m>dm){ dm=m; dom=sys.id; } }
-  return {u, v, gf: gw ? g/gw : 1.3, dom};
+    const m = Math.hypot(a*k,b*k); gw += m; g += m*sys.gust; }
+  return {u, v, gf: gw ? g/gw : 1.3};
 }
 // Fit strengths to station observations: bounded, ridge-regularised least squares (projected gradient)
-function fitSystems(obs){ // obs: [{x,y,u,v}] – grid search over the large-scale direction, linear bounded LSQ for the strengths
-  let best=null;
+// Fit: grid search over the large-scale direction; for each direction a bounded least-squares fit of all strengths.
+// obs: on-lake stations [{x,y,u,v}]; prior: indicator targets per system {id:{t,w}} and for the direction {dir,w}.
+function fitSystems(obs, prior={}){
+  const lam = 6; let best=null;
+  const P = SYSTEMS.map(sys => prior[sys.id] || {t:0, w:lam});
   for(let dir=0; dir<360; dir+=10){
     const B = obs.map(o => SYSTEMS.map(sys => { const [a,b] = sys.f(o.x,o.y,dir); return [a*sys.vmax, b*sys.vmax]; }));
-    const lam = 6; let L = lam; B.forEach(r=>r.forEach(([a,b])=>L+=a*a+b*b));
-    const s = SYSTEMS.map(()=>0);
+    let L = 0; P.forEach(p=>L=Math.max(L,p.w)); B.forEach(r=>r.forEach(([a,b])=>L+=a*a+b*b));
+    const s = SYSTEMS.map((sys,k)=>clamp(P[k].t, sys.min, sys.max));
     for(let it=0; it<400; it++){
-      const g = s.map(sk=>lam*sk);
+      const g = s.map((sk,k)=>P[k].w*(sk-P[k].t));
       obs.forEach((o,i)=>{ let pu=0,pv=0; s.forEach((sk,k)=>{pu+=sk*B[i][k][0]; pv+=sk*B[i][k][1];});
         const ru=pu-o.u, rv=pv-o.v; s.forEach((_,k)=>{ g[k]+= ru*B[i][k][0] + rv*B[i][k][1]; }); });
       s.forEach((sk,k)=>{ s[k] = clamp(sk - g[k]/L, SYSTEMS[k].min, SYSTEMS[k].max); });
     }
-    let cost = lam*s.reduce((a,b)=>a+b*b,0);
+    let cost = s.reduce((a,sk,k)=>a+P[k].w*(sk-P[k].t)**2,0);
     obs.forEach((o,i)=>{ let pu=0,pv=0; s.forEach((sk,k)=>{pu+=sk*B[i][k][0]; pv+=sk*B[i][k][1];}); cost+=(pu-o.u)**2+(pv-o.v)**2; });
+    if(prior.dir) cost += prior.dir.w*(1-Math.cos((dir-prior.dir.dir)*DEG));
     if(!best || cost<best.cost) best={cost, dir, s:[...s]};
   }
   const S = {synDir:best.dir}; SYSTEMS.forEach((sys,k)=>S[sys.id]=+best.s[k].toFixed(3));
   const resid = obs.map(o=>{ const m = modelUV(o.x,o.y,S); return {x:o.x, y:o.y, u:o.u-m.u, v:o.v-m.v}; });
   return {S, resid};
 }
-
+// Indicator stations in the catchments of the wind systems.
+// Each turns its wind into a target strength for "its" system: component from the system's source direction / typical speed at full strength.
+const CATCH = [
+  {id:'fn',  name:'Friedrichshafen', src:'DWD 01490',       lat:47.6454, lon:9.4795, sys:'syn', onlake:true},
+  {id:'gut', name:'Güttingen',       src:'MeteoSwiss GUT',  lat:47.6017, lon:9.2794, sys:'syn'},
+  {id:'sae', name:'Säntis 2501 m',   src:'MeteoSwiss SAE',  lat:47.2494, lon:9.3435, sys:'syn', w:0.35},
+  {id:'dor', name:'Dornbirn',        src:'GeoSphere 11302', lat:47.4325, lon:9.7256, sys:'rheintal', from:185, scale:10, gs:'11302'},
+  {id:'vad', name:'Vaduz',           src:'MeteoSwiss VAD',  lat:47.1275, lon:9.5176, sys:'rheintal', from:180, scale:14},
+  {id:'rag', name:'Bad Ragaz',       src:'MeteoSwiss RAG',  lat:47.0166, lon:9.5026, sys:'rheintal', from:180, scale:16, w:0.6},
+  {id:'alb', name:'Alberschwende',   src:'GeoSphere 11301', lat:47.4575, lon:9.8486, sys:'wald', from:135, scale:7, gs:'11301'},
+  {id:'sul', name:'Sulzberg 1016 m', src:'GeoSphere 11100', lat:47.5219, lon:9.9144, sys:'pfaender', from:60, scale:12, gs:'11100'},
+  {id:'stg', name:'St. Gallen',      src:'MeteoSwiss STG',  lat:47.4255, lon:9.3985, sys:'swiss', from:195, scale:9},
+];
+// last: {id:{dd,ff}} -> {prior, used:{sysId:[station names]}}
+function catchPrior(last){
+  const acc={}, prior={}; let su=0, sv=0, sw=0;
+  for(const c of CATCH){ const r=last[c.id]; if(!r||r.dd==null||r.ff==null) continue; const w=c.w??1;
+    if(c.sys==='syn'){ const [u,v]=vecTo(r.dd, r.ff); su+=w*u; sv+=w*v; sw+=w; }       // vector of the FROM direction
+    else { const comp=r.ff*Math.cos((r.dd-c.from)*DEG); const sys=SYSTEMS.find(s=>s.id===c.sys);
+      const t=clamp(comp/c.scale, sys.min, sys.max); (acc[c.sys]||(acc[c.sys]=[])).push([t,w]); } }
+  for(const [id,list] of Object.entries(acc)){ const W=list.reduce((a,[,w])=>a+w,0); prior[id]={t:list.reduce((a,[t,w])=>a+t*w,0)/W, w:30*Math.min(1,W)}; }
+  if(sw){ const u=su/sw, v=sv/sw, sp=Math.hypot(u,v); prior.syn={t:clamp(sp/12,0,1), w:30};
+    if(sp>0.5) prior.dir={dir:(Math.atan2(u,v)/DEG+360)%360, w:25*Math.min(1,sp/3)}; }
+  return prior;
+}
 
 // =================== field: live fit or simulator ===================
 const PRESETS = {
@@ -399,13 +443,17 @@ const PRESETS = {
 };
 let MODE='live', SIM={...PRESETS.night}, FIT=null, PRESET='';
 function refit(){
-  const obs=[], ratios=[];
-  for(const st of STATIONS){ const r=(DATA[st.id]||[]).slice(-1)[0]; if(!r||r.dd==null||r.ff==null) continue;
+  const obs=[], ratios=[], last={};
+  for(const st of [...STATIONS, ...CATCH]){ const r=(DATA[st.id]||[]).slice(-1)[0]; if(!r||r.dd==null||r.ff==null) continue;
+    if(Date.now()-r.t > 60*60e3) continue;                          // ignore values older than 1 h
+    last[st.id]=r;
+    if(st.sys && !st.onlake) continue;                              // indicator only
     const [x,y]=toXY(st.lat,st.lon), [u,v]=vecTo(r.dd+180, r.ff); obs.push({x,y,u,v});
     if(r.fx!=null && r.ff>0.5) ratios.push(r.fx/r.ff); }
   if(!obs.length){ FIT=null; return; }
   ratios.sort((a,b)=>a-b);
-  FIT = {...fitSystems(obs), gr: clamp(ratios.length?ratios[Math.floor(ratios.length/2)]:1.4, 1.1, 2.5)};
+  const prior = catchPrior(last);
+  FIT = {...fitSystems(obs, prior), prior, gr: clamp(ratios.length?ratios[Math.floor(ratios.length/2)]:1.4, 1.1, 2.5)};
 }
 const curS = () => MODE==='sim' ? SIM : (FIT ? FIT.S : {});
 function currentField(lat, lon){
@@ -427,7 +475,8 @@ function arrow(cx,cy,dd,ms,scale=1,col){
   const len=(26+Math.min(ms,15)*4.5)*scale, c=col||color(ms);   // drawn pointing south at 0°: rotating by the FROM direction points downwind
   return `<g transform="translate(${cx},${cy}) rotate(${dd})"><line x1="0" y1="${-len/2}" x2="0" y2="${len/2-10*scale}" stroke="${c}" stroke-width="${7*scale}" stroke-linecap="round"/><path d="M0 ${len/2+4*scale} L${-11*scale} ${len/2-14*scale} L${11*scale} ${len/2-14*scale}Z" fill="${c}"/></g>`;
 }
-let MAP, MARKERS = {}, SYSLAYER, SYNCTRL, LEGCTRL;
+let MAP, MARKERS = {}, SYSLAYER, SYNCTRL, LEGCTRL, CATCHLAYER, EXT_WIDE=false;
+function fitExtent(){ if(!MAP) return; if(EXT_WIDE) MAP.fitBounds(L.latLngBounds([...STATIONS,...CATCH].map(s=>[s.lat,s.lon])).pad(0.08)); else MAP.fitBounds([[47.465, 9.50],[47.575, 9.80]]); const b=document.getElementById('extBtn'); if(b) b.textContent = EXT_WIDE ? T().showLake : T().showCatch; }
 const xyLL = (x,y) => [ORIGIN.lat + y/111.2, ORIGIN.lon + x/75.1];
 function initMap(){
   if(MAP || !window.L) return;
@@ -437,6 +486,9 @@ function initMap(){
   MAP.fitBounds([[47.465, 9.50],[47.575, 9.80]]);
   SYSLAYER = L.layerGroup().addTo(MAP);
   SYNCTRL = L.control({position:'topright'}); SYNCTRL.onAdd = () => L.DomUtil.create('div','ovl'); SYNCTRL.addTo(MAP);
+  CATCHLAYER = L.layerGroup().addTo(MAP);
+  const ext = L.control({position:'topleft'}); ext.onAdd = () => { const b=L.DomUtil.create('button','btn'); b.id='extBtn'; b.style.cssText='margin-top:4px';
+    L.DomEvent.disableClickPropagation(b); b.onclick=()=>{ EXT_WIDE=!EXT_WIDE; fitExtent(); }; return b; }; ext.addTo(MAP);
   LEGCTRL = L.control({position:'bottomleft'}); LEGCTRL.onAdd = () => L.DomUtil.create('div','ovl legend'); LEGCTRL.addTo(MAP);
   MAP.on('click', boatClick);
   window.addEventListener('resize', ()=>{ MAP.invalidateSize(); });
@@ -456,6 +508,12 @@ function renderMap(){
     MARKERS[st.id].setOpacity(MODE==='sim'?0.35:1);
   }
   renderLegend();
+  if(CATCHLAYER){ CATCHLAYER.clearLayers();
+    for(const c of CATCH){ const r=(DATA[c.id]||[]).slice(-1)[0], col=SYSCOL[c.sys];
+      const html=`<svg width="30" height="30" viewBox="-15 -15 30 30" style="overflow:visible"><circle r="12" fill="rgba(11,22,32,.85)" stroke="${col}" stroke-width="2"/>${r?arrow(0,0,r.dd,r.ff,0.32,col):''}</svg>`;
+      L.marker([c.lat,c.lon], {icon:L.divIcon({className:'', html, iconSize:[30,30], iconAnchor:[15,15]}), keyboard:false, zIndexOffset:400}).addTo(CATCHLAYER)
+        .bindTooltip(`<b>${c.name}</b> → ${T().sys[c.sys][0]}<br>${c.src}${r?` · ${dirName(r.dd)} · ${fmt(r.ff)}/${fmt(r.fx)} ${ULABEL[UNIT]}`:''}`, {direction:'top', offset:[0,-12]}); } }
+  const eb=document.getElementById('extBtn'); if(eb) eb.textContent = EXT_WIDE ? T().showLake : T().showCatch;
 }
 function renderLegend(){
   if(!LEGCTRL) return; const el=LEGCTRL.getContainer(), S=curS();
@@ -533,6 +591,17 @@ function renderList(){
       <div class="val">${last?fmt(last.ff):'–'}<small>${T().gustS} ${last?fmt(last.fx):'–'} ${ULABEL[UNIT]}</small></div></div>`;
   }).join('');
 }
+function renderCatch(){
+  const box=document.getElementById('catch'); if(!box) return;
+  box.innerHTML = CATCH.map(c=>{
+    const r=(DATA[c.id]||[]).slice(-1)[0], old=!r||Date.now()-r.t>60*60e3, col=SYSCOL[c.sys];
+    return `<div class="cs ${old?'old':''}" data-id="${c.id}" style="--c:${col}">
+      <svg viewBox="-11 -11 22 22" width="22" height="22"><circle r="10" fill="var(--panel2)" stroke="${col}" stroke-width="1.5"/>${r?arrow(0,0,r.dd,r.ff,0.26,col):''}</svg>
+      <div class="nm">${c.name} <i>→ ${T().sys[c.sys][0]}</i><span>${c.src}${r?` · ${dirName(r.dd)} ${Math.round(r.dd??0)}° · ${hhmm(r.t)}`:(ERR[c.id]?' · '+T().nodata:'')}</span></div>
+      <div class="val">${r?fmt(r.ff):'–'}<span style="color:var(--mute);font-size:10px"> ${ULABEL[UNIT]}</span></div></div>`;
+  }).join('');
+  box.querySelectorAll('.cs').forEach(el=>el.onclick=()=>{ const c=CATCH.find(x=>x.id===el.dataset.id); if(MAP){ MAP.setView([c.lat,c.lon], Math.min(MAP.getZoom(),11)); } focusSys(c.sys); });
+}
 function renderSummary(){
   const el=document.getElementById('summary'), lasts=STATIONS.map(s=>(DATA[s.id]||[]).slice(-1)[0]).filter(Boolean);
   if(!lasts.length){ el.innerHTML=`<span class="err">${UPDATED?T().noobs:T().loading}</span>`; return; }
@@ -577,7 +646,8 @@ function syncPanel(){
     const sys=SYSTEMS.find(s=>s.id===el.dataset.id), v=S[sys.id]||0, [nm,why]=T().sys[sys.id];
     el.querySelector('.nm b').textContent=nm; el.querySelector('.why').textContent=why; el.querySelector('.i').title=why;
     el.querySelector('input.str').value=v;
-    el.querySelector('.slv').textContent = `${fmtS(sys,v)} · ${T().upto} ${fmt(Math.abs(v)*sys.vmax)} ${ULABEL[UNIT]}`;
+    const pr = MODE==='live' && FIT && FIT.prior && FIT.prior[sys.id];
+    el.querySelector('.slv').textContent = `${fmtS(sys,v)}${pr?` (◆ ${fmtS(sys,pr.t)})`:''} · ${T().upto} ${fmt(Math.abs(v)*sys.vmax)} ${ULABEL[UNIT]}`;
     el.classList.toggle('off', Math.abs(v)<=0.02);
     if(sys.dir){ const d=S.synDir??270; el.querySelector('input.dir').value=d; el.querySelector('.dirv').textContent=`${d}° ${dirName(d)}`;
       el.querySelector('.fromL').textContent=T().from; el.querySelector('.hint').textContent=T().hints[synHintKey(d)]; el.querySelector('.dirrow').title=T().hints[synHintKey(d)]; }
@@ -766,7 +836,7 @@ function boatClick(e){
 let PANEL=false;
 function render(){
   document.getElementById('updated').textContent = UPDATED ? `${T().sub} · ${T().updated(hhmm(UPDATED))}` : `${T().sub} · ${T().loading}`;
-  renderSummary(); renderList();
+  renderSummary(); renderList(); renderCatch();
   if(window.L){ renderMap(); windSetup(); if(!PANEL){ buildPanel(); PANEL=true; } syncPanel(); renderSystems(); windRegrid(); }
 }
 document.querySelectorAll('#units button').forEach(b=>{ b.onclick=()=>{ UNIT=b.dataset.u; try{localStorage.setItem('wind-unit',UNIT)}catch(e){}
