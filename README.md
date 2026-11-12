@@ -1,4 +1,4 @@
-# Lake Constance East – Live Wind
+# Windshift – live wind for eastern Lake Constance
 
 A single-page prototype that shows current wind conditions in the eastern part of Lake Constance (Bodensee), built entirely on open data and fetched live in the browser.
 
