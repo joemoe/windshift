@@ -171,7 +171,7 @@ async function loadAll(){
 // ---------- Rendering ----------
 function arrow(cx,cy,dd,ms,scale=1){
   if(dd==null||ms==null) return `<circle cx="${cx}" cy="${cy}" r="8" fill="#566"/>`;
-  const len = (26 + Math.min(ms,15)*4.5)*scale, rot = dd+180; // points where the wind is blowing to
+  const len = (26 + Math.min(ms,15)*4.5)*scale, rot = dd; // arrow drawn pointing south at 0°, so rotating by the "from" direction points where the wind blows to
   return `<g transform="translate(${cx},${cy}) rotate(${rot})">
     <line x1="0" y1="${-len/2}" x2="0" y2="${len/2-10*scale}" stroke="${color(ms)}" stroke-width="${7*scale}" stroke-linecap="round"/>
     <path d="M0 ${len/2+4*scale} L${-11*scale} ${len/2-14*scale} L${11*scale} ${len/2-14*scale}Z" fill="${color(ms)}"/></g>`;
