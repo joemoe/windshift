@@ -716,15 +716,15 @@ function spawn(p, randomAge){
   p.x=null;
   for(let k=0;k<30;k++){ const x=Math.random()*W.cv.width, y=Math.random()*W.cv.height; if(W.ctx.isPointInPath(W.path,x,y)){ p.x=x; p.y=y; break; } }
   if(p.x==null){ p.x=Math.random()*W.cv.width; p.y=Math.random()*W.cv.height; }
-  p.max=35+Math.random()*70; p.age=randomAge?Math.random()*p.max:0; p.px=p.x; p.py=p.y; return p;
+  p.max=70+Math.random()*130; p.age=randomAge?Math.random()*p.max:0; p.px=p.x; p.py=p.y; return p;
 }
 function sample(x,y){ const st=W.step*W.dpr, i=Math.round(x/st), j=Math.round(y/st); if(i<0||j<0||i>=W.gw||j>=W.gh) return null; return W.grid[j*W.gw+i]; }
 function windFrame(){
   W.raf=null;
   if(!W.on || document.hidden || !W.ready) return;
   if(!W.moving){
-    const c=W.ctx, t=(W.t+=1/60), d=W.dpr;
-    c.globalCompositeOperation='destination-in'; c.fillStyle='rgba(0,0,0,0.86)'; c.fillRect(0,0,W.cv.width,W.cv.height);
+    const c=W.ctx, t=(W.t+=1/120), d=W.dpr;
+    c.globalCompositeOperation='destination-in'; c.fillStyle='rgba(0,0,0,0.92)'; c.fillRect(0,0,W.cv.width,W.cv.height);
     c.globalCompositeOperation='source-over'; c.save(); c.clip(W.path);
     const bins={}, bySys=COLORMODE==='sys';
     for(const p of W.parts){
@@ -733,7 +733,7 @@ function windFrame(){
       const g=0.5+0.5*Math.sin(gx*0.011 - f.ux*t*2.2 + Math.sin(gy*0.007+t*0.3)*1.7) * Math.sin(gy*0.013 + f.uy*t*2.2 + 0.8);
       const sp=f.mean + (f.gust-f.mean)*g*g;
       const wob=(Math.sin(gx*0.009+gy*0.006+t*0.5)*0.22 + Math.sin(gx*0.021-gy*0.017-t*0.9)*0.12), cs=Math.cos(wob), sn=Math.sin(wob);
-      const ux=f.ux*cs - f.uy*sn, uy=f.ux*sn + f.uy*cs, k=(0.3+sp*0.24)*d;
+      const ux=f.ux*cs - f.uy*sn, uy=f.ux*sn + f.uy*cs, k=(0.14+sp*0.11)*d;
       p.px=p.x; p.py=p.y; p.x+=ux*k; p.y-=uy*k;
       if(!c.isPointInPath(W.path,p.x,p.y)){ spawn(p,false); continue; }
       const key = bySys ? (SYSCOL[f.dom]||'#7fb3c8') : PCOL[pBin(sp)]; (bins[key]||(bins[key]=[])).push(p);
