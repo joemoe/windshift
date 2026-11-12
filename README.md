@@ -56,4 +56,8 @@ Stations in the source areas of the wind systems steer the live fit as indicator
 | Sulzberg 1016 m | GeoSphere 11100 | Pfänder downslope wind |
 | St. Gallen | MeteoSwiss STG | Appenzell hills |
 
-Konstanz is not included: Bright Sky currently has no wind for DWD 02712, and opendata.dwd.de does not allow cross-origin browser requests.
+| Konstanz | DWD 02712 (10-min open data, via the log) | large-scale wind |
+
+## Data logging
+
+A Supabase project (`windshift`) collects every station every 10 minutes: the Edge Function `ingest` fetches GeoSphere, MeteoSwiss and DWD 10-minute open data (Lindau, Friedrichshafen, Konstanz – these need a server because opendata.dwd.de does not allow browser requests) and upserts into `public.observations` (station_id, ts, dd, ff, fx, source). A pg_cron job triggers it at minute 3, 13, 23, … . The table is publicly readable; the page reads the last 3 hours from it for the DWD stations and as a fallback.

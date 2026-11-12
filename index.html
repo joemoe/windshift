@@ -204,7 +204,7 @@ const I18N = {
   legendArrow:'Arrows point where the wind blows to', synTitle:'Large-scale', calm:'calm',
   about:'About, model & sources',
   aboutText:`<p>Observations: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data), <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>, <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-min means; gust = peak within the interval. Refreshes every 5 minutes. Map: Esri, © OpenStreetMap contributors.</p>
-  <p>Catchment stations act as indicators: the wind component from a system's source direction, divided by an assumed typical speed, gives a target strength for that system (Vaduz, Bad Ragaz, Dornbirn → Rhine Valley; Alberschwende → Bregenzerwald; Sulzberg → Pfänder; St. Gallen → Appenzell hills; Friedrichshafen, Güttingen and Säntis → large-scale wind). Friedrichshafen also counts as a lake station. Konstanz is not included: no open real-time wind data that a browser can read.</p>
+  <p>Catchment stations act as indicators: the wind component from a system's source direction, divided by an assumed typical speed, gives a target strength for that system (Vaduz, Bad Ragaz, Dornbirn → Rhine Valley; Alberschwende → Bregenzerwald; Sulzberg → Pfänder; St. Gallen → Appenzell hills; Friedrichshafen, Güttingen and Säntis → large-scale wind). Friedrichshafen also counts as a lake station. Lindau, Friedrichshafen and Konstanz come from DWD 10-minute open data, collected every 10 minutes into a small database that also logs all other stations (and serves as a fallback).</p>
   <p>The animated flow is a model, not a measurement: a large-scale wind with adjustable direction that the terrain reshapes, plus six local systems with assumed shapes. In live mode their strengths are fitted to the four stations (bounded least squares) and remaining differences are blended in near each station; motion is sped up. Assumptions draw on Gohm et al. (2015, Pfänderwind), MeteoSwiss/SRF (Rhine Valley föhn), DWD (land–lake breeze) and a ZAMG report of a convergence over the eastern lake.</p>
   <p>Prototype – not an official storm warning. Always follow the storm warning lights.</p>`,
   dirs:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'], locale:'en-GB',
@@ -240,7 +240,7 @@ const I18N = {
   legendArrow:'Pfeile zeigen, wohin der Wind weht', synTitle:'Großwetterlage', calm:'still',
   about:'Info, Modell & Quellen',
   aboutText:`<p>Messwerte: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, Rohdaten), <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Quelle: MeteoSchweiz</a>, <a href="https://brightsky.dev">DWD über Bright Sky</a>. 10-Minuten-Mittel; Böe = Spitze im Intervall. Aktualisierung alle 5 Minuten. Karte: Esri, © OpenStreetMap-Mitwirkende.</p>
-  <p>Stationen im Einzugsgebiet dienen als Indikatoren: Die Windkomponente aus der Quellrichtung eines Systems, geteilt durch eine angenommene typische Geschwindigkeit, ergibt eine Zielstärke für dieses System (Vaduz, Bad Ragaz, Dornbirn → Rheintal; Alberschwende → Bregenzerwald; Sulzberg → Pfänder; St. Gallen → Appenzeller Hänge; Friedrichshafen, Güttingen und Säntis → Großwetterlage). Friedrichshafen zählt zusätzlich als Seestation. Konstanz fehlt: Es gibt dort keine offenen Echtzeit-Winddaten, die ein Browser lesen kann.</p>
+  <p>Stationen im Einzugsgebiet dienen als Indikatoren: Die Windkomponente aus der Quellrichtung eines Systems, geteilt durch eine angenommene typische Geschwindigkeit, ergibt eine Zielstärke für dieses System (Vaduz, Bad Ragaz, Dornbirn → Rheintal; Alberschwende → Bregenzerwald; Sulzberg → Pfänder; St. Gallen → Appenzeller Hänge; Friedrichshafen, Güttingen und Säntis → Großwetterlage). Friedrichshafen zählt zusätzlich als Seestation. Lindau, Friedrichshafen und Konstanz kommen aus den offenen 10-Minuten-Daten des DWD, die alle 10 Minuten in eine kleine Datenbank geschrieben werden; dort werden auch alle anderen Stationen mitprotokolliert (und dienen als Rückfall).</p>
   <p>Die animierte Strömung ist ein Modell, keine Messung: eine Großwetterlage mit einstellbarer Richtung, die vom Gelände verformt wird, plus sechs lokale Systeme mit angenommener Form. Im Live-Modus werden ihre Stärken an die vier Stationen angepasst (beschränkte Ausgleichsrechnung), Restabweichungen werden nahe jeder Station eingerechnet; die Bewegung läuft im Zeitraffer. Grundlagen: Gohm et al. (2015, Pfänderwind), MeteoSchweiz/SRF (Rheintal-Föhn), DWD (Land-See-Wind) und ein ZAMG-Bericht über eine Konvergenz über dem Ostsee.</p>
   <p>Prototyp – keine offizielle Sturmwarnung. Maßgeblich sind die Sturmwarnleuchten.</p>`,
   dirs:['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'], locale:'de-AT',
@@ -300,31 +300,32 @@ async function loadMeteoSwiss(code){
     return {t:new Date(`${y}-${m}-${d}T${t}:00Z`), ff:num(c[iF]), dd:num(c[iD]), fx:num(c[iX])}; }).filter(r=>r.ff!=null);
   return rows.filter(r=>r.t>=Date.now()-3*3600e3);
 }
-async function loadDWD(id){
-  const j = await fetch(`https://api.brightsky.dev/current_weather?dwd_station_id=${id}`).then(r=>{ if(!r.ok) throw new Error('DWD '+r.status); return r.json(); });
-  const w = j.weather, k = v => v==null ? null : v/3.6; // Bright Sky returns km/h
-  if(w.wind_speed_10==null) throw new Error('DWD no wind');
-  return [{t:new Date(w.timestamp), ff:k(w.wind_speed_10), dd:w.wind_direction_10, fx:k(w.wind_gust_speed_10)}];
-}
-// DWD via Bright Sky only gives the current value: keep a short history in this browser
-function dwdHistory(key, cur){
-  let hist=[]; try{ hist=JSON.parse(localStorage.getItem(key)||'[]').map(r=>({...r,t:new Date(r.t)})); }catch(e){}
-  if(!hist.length || +hist[hist.length-1].t !== +cur.t) hist.push(cur);
-  hist = hist.filter(r=>r.t>=Date.now()-3*3600e3); try{ localStorage.setItem(key, JSON.stringify(hist)); }catch(e){}
-  return hist;
+// Logged observations (Supabase): DWD 10-min data for Lindau, Friedrichshafen, Konstanz and a fallback for every other station
+const DB_URL = 'https://lfiadqrbacphpoeihfpg.supabase.co', DB_KEY = 'sb_publishable_Nd6UwPbp1kpRb1AOu5aKbA_K8Zwgwsi';
+async function loadDB(){
+  const since = new Date(Date.now()-3*3600e3).toISOString();
+  const rows = await fetch(`${DB_URL}/rest/v1/observations?select=station_id,ts,dd,ff,fx&ts=gte.${since}&order=ts.asc&limit=5000`, {headers:{apikey:DB_KEY, Authorization:'Bearer '+DB_KEY}})
+    .then(r=>{ if(!r.ok) throw new Error('DB '+r.status); return r.json(); });
+  const out={}; for(const r of rows) (out[r.station_id]||(out[r.station_id]=[])).push({t:new Date(r.ts), dd:r.dd, ff:r.ff, fx:r.fx});
+  return out;
 }
 const MS_CODES = {altenrhein:'ARH', gut:'GUT', sae:'SAE', vad:'VAD', rag:'RAG', stg:'STG'};
 let DATA = {}, ERR = {}, UPDATED = null;
 async function loadAll(){
   document.getElementById('updated').textContent = T().loading;
   const msKeys = Object.keys(MS_CODES);
-  const [gs, dwdL, dwdF, ...ms] = await Promise.allSettled([loadGeoSphere(), loadDWD('06102'), loadDWD('01490'), ...msKeys.map(k=>loadMeteoSwiss(MS_CODES[k]))]);
+  const [db, gs, ...ms] = await Promise.allSettled([loadDB(), loadGeoSphere(), ...msKeys.map(k=>loadMeteoSwiss(MS_CODES[k]))]);
   DATA = {}; ERR = {};
+  const DB = db.status==='fulfilled' ? db.value : {};
   const gsIds = [...STATIONS, ...CATCH].filter(s=>s.gs);
   if(gs.status==='fulfilled') gsIds.forEach(st=>DATA[st.id]=gs.value[st.gs]||[]); else gsIds.forEach(st=>ERR[st.id]=gs.reason.message);
-  if(dwdL.status==='fulfilled') DATA.lindau=dwdHistory('wind-lindau', dwdL.value[0]); else ERR.lindau=dwdL.reason.message;
-  if(dwdF.status==='fulfilled') DATA.fn=dwdHistory('wind-fn', dwdF.value[0]); else ERR.fn=dwdF.reason.message;
   ms.forEach((r,i)=>{ const k=msKeys[i]; if(r.status==='fulfilled') DATA[k]=r.value; else ERR[k]=r.reason.message; });
+  // DWD stations come from the log; any station whose live source failed falls back to the log
+  for(const st of [...STATIONS, ...CATCH]){
+    const live=DATA[st.id], logged=DB[st.id];
+    if((!live || !live.length) && logged && logged.length){ DATA[st.id]=logged; delete ERR[st.id]; }
+    else if(!live && !logged) ERR[st.id]=ERR[st.id]||(db.status==='rejected'?db.reason.message:'no data');
+  }
   UPDATED = new Date(); refit(); render();
 }
 
@@ -439,6 +440,7 @@ function fitSystems(obs, prior={}){
 // Each turns its wind into a target strength for "its" system: component from the system's source direction / typical speed at full strength.
 const CATCH = [
   {id:'fn',  name:'Friedrichshafen', src:'DWD 01490',       lat:47.6454, lon:9.4795, sys:'syn', onlake:true},
+  {id:'kn',  name:'Konstanz',        src:'DWD 02712',       lat:47.6774, lon:9.1901, sys:'syn'},
   {id:'gut', name:'Güttingen',       src:'MeteoSwiss GUT',  lat:47.6017, lon:9.2794, sys:'syn'},
   {id:'sae', name:'Säntis 2501 m',   src:'MeteoSwiss SAE',  lat:47.2494, lon:9.3435, sys:'syn', w:0.35},
   {id:'dor', name:'Dornbirn',        src:'GeoSphere 11302', lat:47.4325, lon:9.7256, sys:'rheintal', from:185, scale:10, gs:'11302'},
