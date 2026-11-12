@@ -23,12 +23,11 @@ Prototype only – not an official storm warning. Always follow the official sto
 
 ## Wind-system model
 
-The animated flow is not an interpolation but a conceptual model of eight local wind systems that shape the eastern lake. Each has an assumed spatial shape and a strength:
+The animated flow is not an interpolation but a conceptual model: one large-scale wind with adjustable direction that the terrain reshapes, plus six local wind systems that are tied to a valley or slope and therefore have a fixed direction. Each has an assumed spatial shape and a strength:
 
 | System | Assumption |
 |---|---|
-| Westerly (large-scale) | Channelled along the lake axis, slowed and split by the Pfänder/Alps wall at the eastern end |
-| Northerly / Bise | NE down the lake, bending into the Rhine Valley near the south shore, Bregenz bay partly in the Pfänder lee |
+| Large-scale wind (any direction) | Steered along the lake axis (WNW–ESE); eastward flow braked and split by the Pfänder/Alps wall (south into the Rhine Valley, north towards Lindau); southward flow blocked by the Appenzell/Alps edge except at the Rhine Valley gap. The page hints which local systems a direction tends to trigger (e.g. E–NE → Pfänderwind). |
 | Rhine Valley | Föhn / mountain wind leaving the valley over the delta (positive) or daytime valley breeze into it (negative) |
 | Rhine river outflow | Narrow cold-air jet out of the new Rhine mouth |
 | Bregenzerwald / Bregenzer Ach | SE gap/drainage wind incl. the south-east Pfänderwind over the Gebhardsberg |
@@ -36,7 +35,7 @@ The animated flow is not an interpolation but a conceptual model of eight local 
 | Swiss hills (Appenzell) | S/SSW downslope wind onto Rorschach–Altenrhein |
 | Thermal | Night land breeze converging over the lake (positive) or afternoon lake breeze (negative) |
 
-- **Live mode** fits the strengths to the four stations (bounded, ridge-regularised least squares) and blends the remaining differences in near each station.
+- **Live mode** fits the large-scale direction (10° grid search) and all strengths to the four stations (bounded, ridge-regularised least squares) and blends the remaining differences in near each station.
 - **Simulator mode** lets you set each system or load a scenario.
 - **Boat**: drop a boat that holds a fixed angle to the wind (sails never touched) and watch its track. In the "Calm night" scenario the land-breeze convergence makes it sail a full circle.
 

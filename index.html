@@ -56,6 +56,10 @@
   .slh{display:flex;justify-content:space-between;gap:8px;font-size:12px}
   .slv{font-family:'JetBrains Mono',monospace;color:var(--mute);white-space:nowrap}
   .sl input{width:100%;accent-color:var(--b1);margin:6px 0 2px}
+  .dirrow{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mute)}
+  .dirrow input{flex:1;margin:4px 0}
+  .dirrow b{font-family:'JetBrains Mono',monospace;color:var(--ink);font-weight:500;min-width:62px;text-align:right}
+  .hint{font-size:11px;color:var(--b2);margin-top:2px;line-height:1.4}
   .sl .ends{display:flex;justify-content:space-between;font-size:10px;color:var(--mute)}
   .sl p{font-size:11px;color:var(--mute);margin:4px 0 0;line-height:1.4}
   .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mute);padding:4px 8px 6px}
@@ -124,8 +128,8 @@
           <summary>Why did my boat go round in a full circle without touching the sails?</summary>
           <p>Trimmed sails only "know" the angle between the boat and the wind. If you never touch them and keep the boat sailing nicely, you hold that angle – so your heading follows the wind. If the wind direction itself changes along your track, you turn with it.</p>
           <p>On calm nights and mornings the shores cool much faster than the lake. Cold air drains off the Pfänder, out of the Bregenzerwald and the Rhine Valley, down from the Appenzell hills and off the Bavarian/Württemberg shore – from every side towards the warmer open water, where it converges. Near such a convergence the wind blows from the north on the north side, from the south on the south side, from the east on the east side. Holding the same angle to that wind (e.g. a beam reach) carries you tangentially around the convergence zone – one full turn of the compass and roughly back to where you started, with the sails never touched.</p>
-          <p>Try it: load <b>“Calm night – the circle”</b>, then drop a boat 1–3 km from the calm spot in the middle of the eastern lake. Föhn, Pfänderwind or a westerly push that calm spot around or wipe it out.</p>
-          <p class="muted">Model, not measurement: eight conceptual wind systems with assumed shapes and strengths, based on the Pfänderwind climatology (Gohm et al., Meteorol. Z. 2015), MeteoSwiss on Rhine Valley föhn reaching Rorschach–Altenrhein, DWD on the land–lake breeze at Friedrichshafen and the ZAMG/vol.at report of a "mini convergence" with NE wind at Friedrichshafen and S–SE at Bregenz/Rohrspitz.</p>
+          <p>Try it: load <b>“Calm night – the circle”</b>, then drop a boat 1–3 km from the calm spot in the middle of the eastern lake. Föhn, Pfänderwind or a large-scale wind from any direction push that calm spot around or wipe it out.</p>
+          <p class="muted">Model, not measurement: a terrain-shaped large-scale wind plus six local wind systems, all with assumed shapes and strengths, based on the Pfänderwind climatology (Gohm et al., Meteorol. Z. 2015), MeteoSwiss on Rhine Valley föhn reaching Rorschach–Altenrhein, DWD on the land–lake breeze at Friedrichshafen and the ZAMG/vol.at report of a "mini convergence" with NE wind at Friedrichshafen and S–SE at Bregenz/Rohrspitz.</p>
         </details>
         <div class="sliders" id="sliders"></div>
       </div>
@@ -136,7 +140,7 @@
   <footer>
     Data sources: <a href="https://data.hub.geosphere.at/dataset/tawes-v1-10min">GeoSphere Austria</a> (CC BY 4.0, raw data),
     <a href="https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations">Source: MeteoSwiss</a>,
-    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. The animated flow is a model: eight conceptual local wind systems (westerly, Bise, Rhine Valley föhn/valley breeze, Rhine outflow, Bregenzerwald, Pfänder downslope wind, Appenzell hills, land/lake breeze). In live mode their strengths are fitted to the four stations (bounded least squares) and remaining differences are blended in near each station; gusts are simulated between mean and peak; motion is sped up. Refreshes automatically every 5 minutes.<br>
+    <a href="https://brightsky.dev">DWD via Bright Sky</a>. 10-minute means; gust = peak within the interval. The animated flow is a model: a large-scale wind with adjustable direction that is reshaped by the terrain, plus six local wind systems (Rhine Valley föhn/valley breeze, Rhine outflow, Bregenzerwald, Pfänder downslope wind, Appenzell hills, land/lake breeze). In live mode their strengths are fitted to the four stations (bounded least squares) and remaining differences are blended in near each station; gusts are simulated between mean and peak; motion is sped up. Refreshes automatically every 5 minutes.<br>
     Prototype – not an official storm warning. Always follow the storm warning lights around the lake.
   </footer>
 </div>
@@ -335,15 +339,30 @@ function slope(x,y, p1, p2, fromDeg, decay){
   const k = (down <= 0 ? 1 : Math.exp(-down/decay)) * endFade;
   return vecTo(to, k);
 }
+// Large-scale flow from any direction, deformed by the terrain around the eastern lake.
+function synoptic(x,y,dirFrom){
+  let [u,v] = vecTo(dirFrom+180, 1);
+  const ax=Math.sin(115*DEG), ay=Math.cos(115*DEG), al=u*ax+v*ay, pu=al*ax, pv=al*ay;
+  u = pu + 0.6*(u-pu); v = pv + 0.6*(v-pv);                         // channelling along the lake axis
+  if(u>0){ const lost = u*0.65/(1+Math.exp(-(x-4.5)/1.5)); u -= lost;  // eastern wall: brake and split
+           v -= lost*0.9*Math.tanh(-(y+0.5)/2); }
+  if(v<0){ const wall = 0.6/(1+Math.exp((y+3)/1.2)) * (1-Math.exp(-((x+1)**2)/9));
+           const lost = -v*wall; v += lost; u += lost*0.8*Math.tanh((x+1)/3); }   // southern edge, open at the Rhine gap
+  return [u,v];
+}
+// Hints: which local systems a given large-scale direction tends to switch on.
+function synHint(dir){
+  const d=((dir%360)+360)%360;
+  if(d>=30 && d<=100) return 'E–NE flow: classical Pfänderwind likely (flow crossing the Pfänder ridge and falling onto Bregenz).';
+  if(d>=330 || d<30) return 'Northerly / Bise: steady and dry, bends into the Rhine Valley at the south shore.';
+  if(d>=150 && d<=215) return 'Southerly flow over the Alps: watch for föhn breaking through in the Rhine Valley.';
+  if(d>215 && d<=290) return 'SW–W flow: with cold air in the Rhine Valley a weak SE Pfänderwind over the Gebhardsberg is possible (evening–morning).';
+  return 'Flow from the NW: little terrain interaction, mostly channelled along the lake.';
+}
 const SYSTEMS = [
-  { id:'west', name:'Westerly (large-scale, W/SW)', min:0, max:1, vmax:12, gust:1.45,
-    why:'Synoptic westerly is channelled along the lake axis and arrives from WNW. The Pfänder/Alps wall at the eastern end slows it and splits it: the southern part turns SE into the Rhine Valley, the northern part turns NE along the Lindau shore.',
-    f:(x,y)=>{ const k = clamp((x+2)/9,0,1); const to = 105 + 50*k*Math.tanh(-(y+0.5)/2);
-               const slow = 1 - 0.6/(1+Math.exp(-(x-4.5)/1.5)); return vecTo(to, slow); } },
-  { id:'north', name:'Northerly / Bise (large-scale, NE)', min:0, max:1, vmax:12, gust:1.25,
-    why:'Bise blows from the NE down the lake. Near the south shore it bends towards the Rhine Valley (from N). The Bregenz bay lies partly in the lee of the Pfänder and stays weaker.',
-    f:(x,y)=>{ const lee = 1 - 0.75*Math.exp(-((x-6)**2+(y+2)**2)/10); const k = clamp((-y-1)/4,0,1);
-               return vecTo(230 - 35*k, lee); } },
+  { id:'syn', name:'Large-scale wind (direction adjustable)', min:0, max:1, vmax:15, gust:1.35, dir:true,
+    why:'One synoptic flow from any direction, reshaped by the terrain: cross-lake components are weakened and the flow is steered along the lake axis (WNW–ESE); eastward flow is braked and split by the Pfänder/Alps wall (south part into the Rhine Valley, north part towards Lindau); southward flow is blocked by the Appenzell/Alps edge except at the Rhine Valley gap, where it continues into the valley.',
+    f:(x,y,dir)=> synoptic(x,y,dir) },
   { id:'rheintal', name:'Rhine Valley: föhn ⇄ valley breeze', min:-1, max:1, vmax:16, gust:1.65,
     why:'Positive: south föhn / night-time mountain wind accelerated in the St. Gallen Rhine Valley, leaving the valley over the delta from SSE and fanning out towards Altenrhein–Rorschach. Negative: daytime valley breeze sucking lake air into the valley (converging flow).',
     f:(x,y)=> jet(x,y, -2.5,-7.5, 160, 3.2, 6.5, 18) },
@@ -368,35 +387,42 @@ const SYSTEMS = [
 function modelUV(x,y, S){
   let u=0, v=0, gw=0, g=0;
   for(const sys of SYSTEMS){ const s = S[sys.id]||0; if(!s) continue;
-    const [a,b] = sys.f(x,y); const k = s*sys.vmax; u += a*k; v += b*k;
+    const [a,b] = sys.f(x,y,S.synDir??270); const k = s*sys.vmax; u += a*k; v += b*k;
     const m = Math.hypot(a*k,b*k); gw += m; g += m*sys.gust; }
   return {u, v, gf: gw ? g/gw : 1.3};
 }
 // Fit strengths to station observations: bounded, ridge-regularised least squares (projected gradient)
-function fitSystems(obs){ // obs: [{x,y,u,v}]
-  const B = obs.map(o => SYSTEMS.map(sys => { const [a,b] = sys.f(o.x,o.y); return [a*sys.vmax, b*sys.vmax]; }));
-  const lam = 6; let L = lam; B.forEach(r=>r.forEach(([a,b])=>L+=a*a+b*b));
-  const s = SYSTEMS.map(()=>0);
-  for(let it=0; it<800; it++){
-    const g = s.map((sk,k)=>lam*sk);
-    obs.forEach((o,i)=>{ let pu=0,pv=0; s.forEach((sk,k)=>{pu+=sk*B[i][k][0]; pv+=sk*B[i][k][1];});
-      const ru=pu-o.u, rv=pv-o.v; s.forEach((_,k)=>{ g[k]+= ru*B[i][k][0] + rv*B[i][k][1]; }); });
-    s.forEach((sk,k)=>{ s[k] = clamp(sk - g[k]/L, SYSTEMS[k].min, SYSTEMS[k].max); });
+function fitSystems(obs){ // obs: [{x,y,u,v}] – grid search over the large-scale direction, linear bounded LSQ for the strengths
+  let best=null;
+  for(let dir=0; dir<360; dir+=10){
+    const B = obs.map(o => SYSTEMS.map(sys => { const [a,b] = sys.f(o.x,o.y,dir); return [a*sys.vmax, b*sys.vmax]; }));
+    const lam = 6; let L = lam; B.forEach(r=>r.forEach(([a,b])=>L+=a*a+b*b));
+    const s = SYSTEMS.map(()=>0);
+    for(let it=0; it<400; it++){
+      const g = s.map(sk=>lam*sk);
+      obs.forEach((o,i)=>{ let pu=0,pv=0; s.forEach((sk,k)=>{pu+=sk*B[i][k][0]; pv+=sk*B[i][k][1];});
+        const ru=pu-o.u, rv=pv-o.v; s.forEach((_,k)=>{ g[k]+= ru*B[i][k][0] + rv*B[i][k][1]; }); });
+      s.forEach((sk,k)=>{ s[k] = clamp(sk - g[k]/L, SYSTEMS[k].min, SYSTEMS[k].max); });
+    }
+    let cost = lam*s.reduce((a,b)=>a+b*b,0);
+    obs.forEach((o,i)=>{ let pu=0,pv=0; s.forEach((sk,k)=>{pu+=sk*B[i][k][0]; pv+=sk*B[i][k][1];}); cost+=(pu-o.u)**2+(pv-o.v)**2; });
+    if(!best || cost<best.cost) best={cost, dir, s:[...s]};
   }
-  const S = {}; SYSTEMS.forEach((sys,k)=>S[sys.id]=+s[k].toFixed(3));
+  const S = {synDir:best.dir}; SYSTEMS.forEach((sys,k)=>S[sys.id]=+best.s[k].toFixed(3));
   const resid = obs.map(o=>{ const m = modelUV(o.x,o.y,S); return {x:o.x, y:o.y, u:o.u-m.u, v:o.v-m.v}; });
   return {S, resid};
 }
 
 // ---------- Field used by the animation: live fit or simulator ----------
 const PRESETS = {
-  night:  {label:'Calm night – the circle (land-breeze convergence)', S:{thermal:0.7, pfaender:0.2, wald:0.25, rhein:0.3}},
-  foehn:  {label:'Föhn storm out of the Rhine Valley', S:{rheintal:0.9, rhein:0.2, wald:0.3, swiss:0.45, west:0.1}},
-  west:   {label:'Westerly front', S:{west:0.8, rheintal:-0.1}},
-  bise:   {label:'Bise with Pfänderwind', S:{north:0.6, pfaender:0.5}},
-  pfaender:{label:'Spring evening Pfänderwind', S:{pfaender:0.8, north:0.25}},
-  summer: {label:'Sunny summer afternoon (lake & valley breeze)', S:{thermal:-0.7, rheintal:-0.45, west:0.1}},
-  calm:   {label:'All off', S:{}},
+  night:  {label:'Calm night – the circle (land-breeze convergence)', S:{thermal:0.7, pfaender:0.2, wald:0.25, rhein:0.3, synDir:270}},
+  foehn:  {label:'Föhn storm out of the Rhine Valley', S:{rheintal:0.9, rhein:0.2, wald:0.3, swiss:0.45, syn:0.15, synDir:200}},
+  west:   {label:'Westerly front', S:{syn:0.75, synDir:260, rheintal:-0.1}},
+  bise:   {label:'Bise with Pfänderwind', S:{syn:0.5, synDir:50, pfaender:0.5}},
+  pfaender:{label:'Spring evening Pfänderwind', S:{pfaender:0.8, syn:0.2, synDir:70}},
+  sepf:   {label:'SE Pfänderwind under a westerly aloft (night)', S:{wald:0.6, syn:0.15, synDir:250, rheintal:0.1}},
+  summer: {label:'Sunny summer afternoon (lake & valley breeze)', S:{thermal:-0.7, rheintal:-0.45, syn:0.1, synDir:250}},
+  calm:   {label:'All off', S:{synDir:270}},
 };
 let MODE = 'live', SIM = {...PRESETS.night.S}, FIT = null;
 function refit(){
@@ -441,12 +467,15 @@ function buildPanel(){
     <div class="sl" data-id="${sys.id}">
       <div class="slh"><b>${sys.name}</b><span class="slv"></span></div>
       <input type="range" min="${sys.min}" max="${sys.max}" step="0.01" aria-label="${sys.name}">
+      ${sys.dir?`<div class="dirrow"><span>from</span><input type="range" class="dir" min="0" max="355" step="5" aria-label="Large-scale wind direction"><b class="dirv"></b></div><div class="hint"></div>`:''}
       ${sys.min<0?`<div class="ends"><span>${sys.id==='thermal'?'← lake breeze (day)':'← valley breeze (day)'}</span><span>${sys.id==='thermal'?'land breeze (night) →':'föhn / mountain wind →'}</span></div>`:''}
       <p>${sys.why}</p>
     </div>`).join('');
   document.querySelectorAll('#sliders .sl').forEach(el=>{
-    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), inp=el.querySelector('input');
-    inp.oninput=()=>{ if(MODE!=='sim'){ SIM={...(FIT?FIT.S:SIM)}; setMode('sim', true); } SIM[sys.id]=+inp.value; syncSliders(); windRegrid(); };
+    const sys=SYSTEMS.find(s=>s.id===el.dataset.id), inp=el.querySelector('input:not(.dir)'), dir=el.querySelector('input.dir');
+    const take=()=>{ if(MODE!=='sim'){ SIM={...(FIT?FIT.S:SIM)}; setMode('sim', true); } };
+    inp.oninput=()=>{ take(); SIM[sys.id]=+inp.value; syncSliders(); windRegrid(); };
+    if(dir) dir.oninput=()=>{ take(); SIM.synDir=+dir.value; if(!SIM[sys.id]) SIM[sys.id]=0.4; syncSliders(); windRegrid(); };
   });
   document.querySelectorAll('#mode button').forEach(b=> b.onclick=()=>{
     if(b.dataset.m==='sim' && MODE!=='sim' && FIT) SIM={...FIT.S};
@@ -457,13 +486,14 @@ function syncSliders(){
   const S = MODE==='sim' ? SIM : (FIT ? FIT.S : {});
   document.querySelectorAll('#sliders .sl').forEach(el=>{
     const sys=SYSTEMS.find(s=>s.id===el.dataset.id), v=S[sys.id]||0;
-    el.querySelector('input').value=v;
+    el.querySelector('input:not(.dir)').value=v;
+    if(sys.dir){ const d=S.synDir??270; el.querySelector('input.dir').value=d; el.querySelector('.dirv').textContent=`${d}° ${dirName(d)}`; el.querySelector('.hint').textContent=synHint(d); }
     el.querySelector('.slv').textContent = `${fmtS(sys,v)} · up to ${fmt(Math.abs(v)*sys.vmax)} ${ULABEL[UNIT]}`;
     el.classList.toggle('active', Math.abs(v)>0.02);
   });
   document.getElementById('modeNote').textContent = MODE==='sim'
     ? 'Simulator: the flow shows only the wind systems you set. Station markers still show live data.'
-    : (FIT ? 'Live: the eight systems are fitted to the four stations right now (sliders show the fit). Move a slider to take over.' : 'Live: waiting for station data …');
+    : (FIT ? 'Live: large-scale direction and the strength of every system are fitted to the four stations right now (sliders show the fit). Move a slider to take over.' : 'Live: waiting for station data …');
 }
 function setMode(m, keep){
   MODE=m;
