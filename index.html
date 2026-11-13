@@ -142,6 +142,12 @@
   .wm .lbl{background:rgba(11,22,32,.85);border:1px solid var(--line);border-radius:7px;padding:2px 6px;text-align:center;white-space:nowrap;line-height:1.2}
   .wm .lbl b{font-size:11px;display:block}
   .wm .lbl span{font-family:'JetBrains Mono',monospace;font-size:11px}
+  .shareov{position:fixed;inset:0;z-index:3000;background:rgba(3,8,12,.78);display:flex;align-items:center;justify-content:center;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom))}
+  .shareov .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;width:min(460px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;overflow:auto}
+  .shareov img{width:100%;height:auto;max-height:62vh;object-fit:contain;border-radius:8px;background:var(--bg);-webkit-touch-callout:default}
+  .shareov .row{display:flex;gap:8px;flex-wrap:wrap}.shareov .row .btn{flex:1;padding:9px;font-size:13px}
+  .shareov .btn.pri{background:var(--b1);color:#05221a;border-color:var(--b1);font-weight:700}
+  .shareov .note{color:var(--mute);font-size:11px;line-height:1.4}
   .chip{display:inline-flex;align-items:center;gap:4px;background:rgba(11,22,32,.88);border:2px solid var(--c);border-radius:20px;padding:2px 8px 2px 3px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--ink);transform:translate(-50%,-50%);cursor:pointer}
   .chip svg{flex:none}
   .chip i{font-style:normal;font-family:'JetBrains Mono',monospace;color:var(--c)}
@@ -170,6 +176,7 @@
     <div class="seg" id="units"><button data-u="kn">kn</button><button data-u="kmh">km/h</button><button data-u="ms">m/s</button></div>
     <div class="seg" id="lang"><button data-l="de">DE</button><button data-l="en">EN</button></div>
     <button class="btn" id="animToggle"></button>
+    <button class="btn" id="share" aria-label="Share"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg> <span data-i18n="share"></span></button>
     <button class="btn" id="reload" aria-label="Refresh">↻</button>
   </header>
   <main>
@@ -212,6 +219,9 @@
 const I18N = {
  en:{
   sub:'live wind, eastern Lake Constance', loading:'Loading observations …', updated:t=>`Updated ${t} · 10-min values`,
+  share:'Share', shRender:'Rendering image …', shShare:'Share', shSave:'Save image', shCopy:'Copy', shCopied:'Copied ✓', shClose:'Close', shHint:'Tip on iPhone: “Share” opens WhatsApp, Instagram & co. – or long-press the image to save it to Photos.', shFail:'Could not create the image.',
+  shLive:'LIVE', shStale:'OUTDATED', shSim:'SIMULATION', shMeasured:t=>`measured ${t}`, shSimSub:'model scenario · not measured', shRegion:'Eastern Lake Constance', shOwn:'Custom scenario',
+  shFootLive:'Arrows: measured (10-min mean / gust) · Flow: model fitted to the measurements', shFootSim:'Assumed wind systems – no measured data', shSrc:'Data: GeoSphere Austria · MeteoSwiss · DWD · Map © Esri, OpenStreetMap',
   animOn:'Flow: on', animOff:'Flow: off', stations:'Stations', last3h:'last 3 h', systems:'Wind systems', boat:'Boat test',
   avg:'Average', dir:'Direction', gust:'Gust', gustS:'gust', stale:'stale', building:'building history …', nodata:'No data', noobs:'No observations available.',
   warn34:'Gusts ≥ 34 kn (storm level)', warn25:'Gusts ≥ 25 kn (strong wind)', warn0:'Below strong-wind level',
@@ -252,6 +262,9 @@ const I18N = {
  },
  de:{
   sub:'Live-Wind, östlicher Bodensee', loading:'Lade Messwerte …', updated:t=>`Stand ${t} · 10-Min-Werte`,
+  share:'Teilen', shRender:'Bild wird erstellt …', shShare:'Teilen', shSave:'Bild speichern', shCopy:'Kopieren', shCopied:'Kopiert ✓', shClose:'Schließen', shHint:'Tipp am iPhone: „Teilen“ öffnet WhatsApp, Instagram & Co. – oder Bild lange drücken, um es in Fotos zu sichern.', shFail:'Bild konnte nicht erstellt werden.',
+  shLive:'LIVE', shStale:'VERALTET', shSim:'SIMULATION', shMeasured:t=>`gemessen ${t}`, shSimSub:'Modell-Szenario · keine Messung', shRegion:'Östlicher Bodensee', shOwn:'Eigenes Szenario',
+  shFootLive:'Pfeile: Messung (10-Min-Mittel / Böe) · Strömung: Modell, an Messungen angepasst', shFootSim:'Angenommene Windsysteme – keine Messdaten', shSrc:'Daten: GeoSphere Austria · MeteoSwiss · DWD · Karte © Esri, OpenStreetMap',
   animOn:'Strömung: an', animOff:'Strömung: aus', stations:'Stationen', last3h:'letzte 3 h', systems:'Windsysteme', boat:'Boots-Test',
   avg:'Mittel', dir:'Richtung', gust:'Böe', gustS:'Böe', stale:'veraltet', building:'Verlauf wird aufgebaut …', nodata:'Keine Daten', noobs:'Keine Messwerte verfügbar.',
   warn34:'Böen ≥ 34 kn (Sturm)', warn25:'Böen ≥ 25 kn (Starkwind)', warn0:'Unter Starkwindniveau',
@@ -541,13 +554,14 @@ function arrow(cx,cy,dd,ms,scale=1,col){
   const len=(26+Math.min(ms,15)*4.5)*scale, c=col||color(ms);   // drawn pointing south at 0°: rotating by the FROM direction points downwind
   return `<g transform="translate(${cx},${cy}) rotate(${dd})"><line x1="0" y1="${-len/2}" x2="0" y2="${len/2-10*scale}" stroke="${c}" stroke-width="${7*scale}" stroke-linecap="round"/><path d="M0 ${len/2+4*scale} L${-11*scale} ${len/2-14*scale} L${11*scale} ${len/2-14*scale}Z" fill="${c}"/></g>`;
 }
+const TILE_URL='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 let MAP, MARKERS = {}, SYSLAYER, SYNCTRL, LEGCTRL, CATCHLAYER, EXT_WIDE=false;
 function fitExtent(){ if(!MAP) return; if(EXT_WIDE) MAP.fitBounds(L.latLngBounds([...STATIONS,...CATCH].map(s=>[s.lat,s.lon])).pad(0.08)); else MAP.fitBounds([[47.465, 9.50],[47.575, 9.80]]); const b=document.getElementById('extBtn'); if(b) b.textContent = EXT_WIDE ? T().showLake : T().showCatch; }
 const xyLL = (x,y) => [ORIGIN.lat + y/111.2, ORIGIN.lon + x/75.1];
 function initMap(){
   if(MAP || !window.L) return;
   MAP = L.map('map', {zoomControl:true, scrollWheelZoom:true, attributionControl:true}).setView([47.515, 9.64], 11);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+  L.tileLayer(TILE_URL, {
     maxZoom:16, attribution:'Tiles © Esri — Esri, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(MAP);
   MAP.fitBounds([[47.465, 9.50],[47.575, 9.80]]);
   SYSLAYER = L.layerGroup().addTo(MAP);
@@ -954,6 +968,150 @@ function boatClick(e){
   boatAdd(e.latlng.lat, e.latlng.lng);
 }
 
+// =================== share image ===================
+// Renders the current map view as a 1080×1350 image (Instagram portrait / WhatsApp) and labels it clearly LIVE or SIMULATION.
+const SH_CSS = {'var(--b0)':'#7fb3c8','var(--b1)':'#4fc3a1','var(--b2)':'#c9d85a','var(--b3)':'#f2a93b','var(--b4)':'#ef5b4c'};
+const shCol = c => SH_CSS[c]||c;
+const shImg = (src, cors) => new Promise(res=>{ const im=new Image(); if(cors) im.crossOrigin='anonymous';
+  const to=setTimeout(()=>res(null), 8000); im.onload=()=>{clearTimeout(to);res(im)}; im.onerror=()=>{clearTimeout(to);res(null)}; im.src=src; });
+function shRound(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function shArrow(c,x,y,dd,ms,sc,col){
+  const len=(26+Math.min(ms,15)*4.5)*sc;
+  c.save(); c.translate(x,y); c.rotate(dd*DEG); c.strokeStyle=c.fillStyle=col; c.lineCap='round';
+  c.lineWidth=7*sc+4; c.strokeStyle='rgba(8,19,26,.9)'; c.beginPath(); c.moveTo(0,-len/2); c.lineTo(0,len/2-10*sc); c.stroke();
+  c.lineWidth=7*sc; c.strokeStyle=col; c.beginPath(); c.moveTo(0,-len/2); c.lineTo(0,len/2-10*sc); c.stroke();
+  c.beginPath(); c.moveTo(0,len/2+4*sc); c.lineTo(-11*sc,len/2-14*sc); c.lineTo(11*sc,len/2-14*sc); c.closePath();
+  c.lineWidth=3; c.strokeStyle='rgba(8,19,26,.9)'; c.stroke(); c.fill(); c.restore();
+}
+async function shareRender(){
+  const IW=1080, IH=1350, TOP=176, MH=964, FOOT=TOP+MH;
+  try{ await document.fonts.ready; }catch(e){}
+  const cv=document.createElement('canvas'); cv.width=IW; cv.height=IH; const c=cv.getContext('2d');
+  const sim = MODE==='sim', S=curS();
+  const lastT = Math.max(0, ...STATIONS.map(s=>{ const r=(DATA[s.id]||[]).slice(-1)[0]; return r?+r.t:0; }));
+  const stale = !sim && (!lastT || Date.now()-lastT > 40*60e3);
+  const ACC = sim ? '#f2a93b' : stale ? '#c9a13b' : '#4fc3a1';
+  c.fillStyle='#0b1620'; c.fillRect(0,0,IW,IH);
+
+  // ---- map frame: current view, scaled to cover the map area ----
+  const sz=MAP.getSize(), s=Math.max(IW/sz.x, MH/sz.y), ox=(IW-sz.x*s)/2, oy=TOP+(MH-sz.y*s)/2;
+  const P = (lat,lon) => { const q=MAP.latLngToContainerPoint([lat,lon]); return [ox+q.x*s, oy+q.y*s]; };
+  const toLL = (X,Y) => MAP.containerPointToLatLng([(X-ox)/s, (Y-oy)/s]);
+  c.save(); c.beginPath(); c.rect(0,TOP,IW,MH); c.clip();
+  c.fillStyle='#262c30'; c.fillRect(0,TOP,IW,MH);
+  const lake=new Path2D(); LAKE.forEach(([lo,la],i)=>{ const [x,y]=P(la,lo); i?lake.lineTo(x,y):lake.moveTo(x,y); }); lake.closePath();
+  c.fillStyle='#1b2226'; c.fill(lake);
+  // tiles at a zoom that matches the output resolution (crisp, not upscaled)
+  const zc=MAP.getZoom(), zt=Math.max(0, Math.min(16, Math.round(zc+Math.log2(s)))), k=MAP.getZoomScale(zt,zc);
+  const org=MAP.project(MAP.containerPointToLatLng([0,0]), zt), ts=256/k*s;
+  const cx0=(0-ox)/s, cy0=(TOP-oy)/s, cx1=(IW-ox)/s, cy1=(TOP+MH-oy)/s;
+  const tx0=Math.floor((org.x+cx0*k)/256), tx1=Math.floor((org.x+cx1*k)/256), ty0=Math.floor((org.y+cy0*k)/256), ty1=Math.floor((org.y+cy1*k)/256);
+  const jobs=[]; for(let ty=ty0;ty<=ty1;ty++) for(let tx=tx0;tx<=tx1;tx++) if(jobs.length<120)
+    jobs.push(shImg(TILE_URL.replace('{z}',zt).replace('{x}',tx).replace('{y}',ty), true).then(im=>({im,tx,ty})));
+  for(const {im,tx,ty} of await Promise.all(jobs)) if(im) c.drawImage(im, ox+((tx*256-org.x)/k)*s, oy+((ty*256-org.y)/k)*s, ts+0.5, ts+0.5);
+  c.fillStyle='rgba(18,58,82,.22)'; c.fill(lake);
+
+  // ---- wind systems (same geometry as on the map) ----
+  for(const [id,g] of Object.entries(SYSGEO)){
+    const v=S[id]||0, a=Math.min(1,Math.abs(v)), col=SYSCOL[id]; if(a<=0.02) continue;
+    c.strokeStyle=col; c.fillStyle=col; c.lineCap='round'; c.lineJoin='round';
+    if(g.type==='jet'){ const pts=jetFan(g,v).map(([la,lo])=>P(la,lo)); c.beginPath(); pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y)); c.closePath();
+      c.globalAlpha=0.1+0.25*a; c.fill(); c.globalAlpha=0.4+0.5*a; c.lineWidth=3; c.setLineDash(v<0?[8,8]:[]); c.stroke(); }
+    if(g.type==='ridge'){ c.globalAlpha=0.45+0.5*a; c.lineWidth=(3+9*a)*1.6; c.setLineDash([]); c.beginPath(); g.p.forEach(([x,y],i)=>{ const q=P(...xyLL(x,y)); i?c.lineTo(...q):c.moveTo(...q); }); c.stroke(); }
+    if(g.type==='ring'){ const [x,y]=P(...xyLL(...g.c)), [x2]=P(...xyLL(g.c[0]+g.r,g.c[1])); c.globalAlpha=0.45+0.5*a; c.lineWidth=4; c.setLineDash(v>0?[3,14]:[18,10]); c.beginPath(); c.arc(x,y,Math.abs(x2-x),0,2*Math.PI); c.stroke(); }
+    c.globalAlpha=1; c.setLineDash([]);
+  }
+
+  // ---- flow: static streamlines traced through the same wind field as the animation ----
+  c.save(); c.clip(lake); c.lineCap='round';
+  const bySys=COLORMODE==='sys', step=32;
+  for(let Y=TOP+step/2; Y<TOP+MH; Y+=step) for(let X=step/2; X<IW; X+=step){
+    let x=X+(Math.random()-.5)*step, y=Y+(Math.random()-.5)*step; if(!c.isPointInPath(lake,x,y)) continue;
+    const f0=windField(toLL(x,y).lat, toLL(x,y).lng); if(!f0||f0.mean<0.15) continue;
+    const pts=[[x,y]]; let f=f0;
+    for(let n=0;n<9;n++){ const d=2.5+f.mean*0.7; x+=f.ux*d; y-=f.uy*d; if(!c.isPointInPath(lake,x,y)) break; pts.push([x,y]); const ll=toLL(x,y); f=windField(ll.lat,ll.lng); if(!f) break; }
+    if(pts.length<4) continue;
+    c.strokeStyle = bySys ? (SYSCOL[f0.dom]||'#7fb3c8') : PCOL[pBin(f0.mean)];
+    for(let n=1;n<pts.length;n++){ c.globalAlpha=0.15+0.7*n/pts.length; c.lineWidth=1.2+1.6*n/pts.length; c.beginPath(); c.moveTo(...pts[n-1]); c.lineTo(...pts[n]); c.stroke(); }
+  }
+  c.restore(); c.globalAlpha=1;
+
+  // ---- boats ----
+  for(const b of BOATS){ if(!b.path||b.path.length<2) continue; c.strokeStyle=b.color; c.lineWidth=4; c.setLineDash([2,10]); c.lineCap='round';
+    c.beginPath(); b.path.forEach((ll,i)=>{ const q=P(ll[0]??ll.lat, ll[1]??ll.lng); i?c.lineTo(...q):c.moveTo(...q); }); c.stroke(); c.setLineDash([]); }
+
+  // ---- system chips ----
+  c.font='600 21px Inter, system-ui, sans-serif'; c.textBaseline='middle';
+  for(const [id,g] of Object.entries(SYSGEO)){ const a=Math.abs(S[id]||0); if(a<=0.02) continue;
+    const txt=`${T().sys[id][0]} ${Math.round(a*100)}%`, w=c.measureText(txt).width+44; let [x,y]=P(...xyLL(...g.chip)); x=Math.max(w/2+16, Math.min(IW-w/2-16, x)); y=Math.max(TOP+30, Math.min(TOP+MH-30, y));
+    c.globalAlpha=0.6+0.4*Math.min(1,a); c.fillStyle='rgba(11,22,32,.9)'; shRound(c,x-w/2,y-19,w,38,19); c.fill(); c.lineWidth=3; c.strokeStyle=SYSCOL[id]; c.stroke();
+    c.fillStyle=SYSCOL[id]; c.beginPath(); c.arc(x-w/2+20,y,7,0,2*Math.PI); c.fill(); c.fillStyle='#e8f1f5'; c.fillText(txt, x-w/2+34, y+1); c.globalAlpha=1; }
+
+  // ---- measured stations (live only: in simulation nothing measured is shown) ----
+  if(!sim){
+    for(const cs of CATCH){ const r=(DATA[cs.id]||[]).slice(-1)[0]; if(!r||r.dd==null||Date.now()-r.t>60*60e3) continue; const [x,y]=P(cs.lat,cs.lon); if(y<TOP||y>TOP+MH||x<0||x>IW) continue;
+      c.fillStyle='rgba(11,22,32,.88)'; c.strokeStyle=SYSCOL[cs.sys]; c.lineWidth=3; c.beginPath(); c.arc(x,y,22,0,2*Math.PI); c.fill(); c.stroke(); shArrow(c,x,y,r.dd,r.ff,0.55,SYSCOL[cs.sys]); }
+    for(const st of STATIONS){ const r=(DATA[st.id]||[]).slice(-1)[0]; const [x,y]=P(st.lat,st.lon); if(!r||y<TOP||y>TOP+MH) continue;
+      if(r.dd!=null&&r.ff!=null) shArrow(c,x,y,r.dd,r.ff,1.15,shCol(color(r.ff)));
+      const t1=st.name, t2=`${fmt(r.ff)}/${fmt(r.fx)} ${ULABEL[UNIT]}`;
+      c.font='700 22px Inter, system-ui, sans-serif'; const w1=c.measureText(t1).width; c.font='500 22px "JetBrains Mono", monospace'; const w2=c.measureText(t2).width;
+      const w=Math.max(w1,w2)+24, bx=x-w/2, by=y-118;
+      c.fillStyle='rgba(11,22,32,.9)'; shRound(c,bx,by,w,62,12); c.fill(); c.lineWidth=2; c.strokeStyle='#21414f'; c.stroke();
+      c.textAlign='center'; c.fillStyle='#e8f1f5'; c.font='700 22px Inter, system-ui, sans-serif'; c.fillText(t1,x,by+19); c.fillStyle=shCol(color(r.ff)); c.font='500 22px "JetBrains Mono", monospace'; c.fillText(t2,x,by+45); c.textAlign='left'; }
+  } else {
+    c.save(); c.translate(IW/2, TOP+MH/2); c.rotate(-18*DEG); c.font='800 150px Inter, system-ui, sans-serif'; c.textAlign='center';
+    c.fillStyle='rgba(242,169,59,.10)'; c.fillText(T().shSim, 0, 50); c.restore(); c.textAlign='left';
+  }
+  c.restore();
+  c.lineWidth=8; c.strokeStyle=ACC; c.strokeRect(4,TOP+4,IW-8,MH-8);   // coloured frame: green = live, orange = simulation
+
+  // ---- header ----
+  const logo=await shImg('favicon.svg', false); if(logo) c.drawImage(logo, 40, 34, 96, 96);
+  c.textBaseline='alphabetic'; c.fillStyle='#e8f1f5'; c.font='800 64px Inter, system-ui, sans-serif'; c.fillText('Windshift', 150, 92);
+  const now=new Date(), dstr=now.toLocaleDateString(T().locale,{weekday:'short', day:'numeric', month:'short'});
+  c.fillStyle='#8aa6b3'; c.font='500 28px Inter, system-ui, sans-serif'; c.fillText(T().shRegion, 152, 134);
+  const badge = sim ? T().shSim : stale ? T().shStale : T().shLive;
+  const sub = sim ? T().shSimSub : `${dstr} · ${T().shMeasured(lastT ? hhmm(new Date(lastT)) : '–')}`;
+  c.font='800 40px Inter, system-ui, sans-serif'; const bw=c.measureText(badge).width+(sim?48:84), bx=IW-40-bw;
+  c.fillStyle=ACC; shRound(c,bx,36,bw,64,32); c.fill(); c.fillStyle='#071a14';
+  if(!sim){ c.beginPath(); c.arc(bx+36,68,11,0,2*Math.PI); c.fill(); }
+  c.fillText(badge, bx+(sim?24:60), 82);
+  c.textAlign='right'; c.fillStyle=ACC; c.font='600 27px Inter, system-ui, sans-serif'; c.fillText(sub, IW-42, 140); c.textAlign='left';
+
+  // ---- footer ----
+  let y=FOOT+62;
+  if(!sim){
+    const cells=STATIONS.map(st=>{ const r=(DATA[st.id]||[]).slice(-1)[0]; return [st.name, r?`${dirName(r.dd)} ${fmt(r.ff)}`:'–', r?shCol(color(r.ff)):'#566']; }), cw=(IW-80)/cells.length;
+    cells.forEach(([n,v,col],i)=>{ const x=40+i*cw; c.fillStyle='#8aa6b3'; c.font='500 22px Inter, system-ui, sans-serif'; c.fillText(n,x,y-18); c.fillStyle=col; c.font='700 34px Inter, system-ui, sans-serif'; c.fillText(v,x,y+20); });
+    c.fillStyle='#8aa6b3'; c.font='500 22px Inter, system-ui, sans-serif'; c.fillText(ULABEL[UNIT], IW-40-c.measureText(ULABEL[UNIT]).width, y+20);
+  } else {
+    c.fillStyle='#e8f1f5'; c.font='700 34px Inter, system-ui, sans-serif'; c.fillText(PRESET ? T().presets[PRESET] : T().shOwn, 40, y+6);
+    const act=SYSTEMS.filter(q=>Math.abs(S[q.id]||0)>0.02).sort((a,b)=>Math.abs(S[b.id])-Math.abs(S[a.id]));
+    let x=40; c.font='600 22px Inter, system-ui, sans-serif';
+    for(const q of act){ const t=`${T().sys[q.id][0]} ${Math.round(Math.abs(S[q.id])*100)}%`, w=c.measureText(t).width+22; if(x+w>IW-40) break;
+      c.fillStyle=SYSCOL[q.id]; c.beginPath(); c.arc(x+7,y+42,7,0,2*Math.PI); c.fill(); c.fillStyle='#c8d7de'; c.fillText(t,x+20,y+50); x+=w+18; }
+  }
+  c.fillStyle=ACC; c.font='600 21px Inter, system-ui, sans-serif'; c.fillText(sim ? T().shFootSim : T().shFootLive, 40, IH-66);
+  c.fillStyle='#6f8b98'; c.font='500 19px Inter, system-ui, sans-serif'; c.fillText(T().shSrc, 40, IH-30);
+  c.fillStyle='#e8f1f5'; c.font='700 24px Inter, system-ui, sans-serif'; c.textAlign='right'; c.fillText('joemoe.at/windshift', IW-40, IH-30); c.textAlign='left';
+  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('toBlob')), 'image/png'));
+}
+async function shareOpen(){
+  if(!MAP) return;
+  const ov=document.createElement('div'); ov.className='shareov'; ov.innerHTML=`<div class="box"><div class="note">${T().shRender}</div></div>`; document.body.appendChild(ov);
+  const close=()=>{ ov.remove(); if(ov._url) URL.revokeObjectURL(ov._url); };
+  ov.onclick=e=>{ if(e.target===ov) close(); };
+  let blob; try{ blob=await shareRender(); }catch(e){ console.error(e); ov.querySelector('.box').innerHTML=`<div class="note">${T().shFail}</div><div class="row"><button class="btn">${T().shClose}</button></div>`; ov.querySelector('button').onclick=close; return; }
+  const stamp=new Date().toISOString().slice(0,16).replace(/[-:T]/g,''), file=new File([blob], `windshift-${stamp}.png`, {type:'image/png'});
+  const url=ov._url=URL.createObjectURL(blob), canShare=!!(navigator.canShare && navigator.canShare({files:[file]})), canCopy=!!(navigator.clipboard && window.ClipboardItem);
+  ov.querySelector('.box').innerHTML=`<img src="${url}" alt="Windshift">
+    <div class="row">${canShare?`<button class="btn pri" data-a="share">${T().shShare}</button>`:''}<a class="btn${canShare?'':' pri'}" data-a="save" href="${url}" download="${file.name}" style="text-align:center;text-decoration:none">${T().shSave}</a>${canCopy&&!canShare?`<button class="btn" data-a="copy">${T().shCopy}</button>`:''}<button class="btn" data-a="close">${T().shClose}</button></div>
+    <div class="note">${T().shHint}</div>`;
+  ov.querySelector('[data-a="close"]').onclick=close;
+  const sb=ov.querySelector('[data-a="share"]'); if(sb) sb.onclick=async()=>{ try{ await navigator.share({files:[file]}); }catch(e){ if(e.name!=='AbortError') console.warn(e); } };
+  const cb=ov.querySelector('[data-a="copy"]'); if(cb) cb.onclick=async()=>{ try{ await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]); cb.textContent=T().shCopied; }catch(e){ console.warn(e); } };
+}
+
 // =================== wiring ===================
 let PANEL=false;
 function render(){
@@ -966,6 +1124,7 @@ document.querySelectorAll('#units button').forEach(b=>{ b.onclick=()=>{ UNIT=b.d
 document.querySelectorAll('#lang button').forEach(b=> b.onclick=()=>{ LANG=b.dataset.l; try{localStorage.setItem('wind-lang',LANG)}catch(e){} applyLang(); });
 document.getElementById('animToggle').onclick=()=>{ W.on=!W.on; syncAnimBtn(); if(W.on) windStart(); else { cancelAnimationFrame(W.raf); W.raf=null; W.ctx&&W.ctx.clearRect(0,0,W.cv.width,W.cv.height); } };
 document.getElementById('reload').onclick = loadAll;
+document.getElementById('share').onclick = shareOpen;
 document.getElementById('boatAdd').onclick=()=>{ PLACING=true; if(MAP) MAP.getContainer().style.cursor='crosshair'; boatHint(T().placing); };
 fcInit(); applyLang(); loadAll(); setInterval(loadAll, 5*60e3);
 </script>
