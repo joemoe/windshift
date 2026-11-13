@@ -61,3 +61,9 @@ Stations in the source areas of the wind systems steer the live fit as indicator
 ## Data logging
 
 A Supabase project (`windshift`) collects every station every 10 minutes: the Edge Function `ingest` fetches GeoSphere, MeteoSwiss and DWD 10-minute open data (Lindau, Friedrichshafen, Konstanz – these need a server because opendata.dwd.de does not allow browser requests) and upserts into `public.observations` (station_id, ts, dd, ff, fx, source). A pg_cron job triggers it at minute 3, 13, 23, … . The table is publicly readable; the page reads the last 3 hours from it for the DWD stations and as a fallback.
+
+## Forecast check
+
+The Edge Function `ingest-forecast` stores, every hour, the newest run of six open forecast models for all stations (lead 0–40 h, with the model's initialisation time): ICON-D2 and ICON-EU (DWD), ICON-CH1 and ICON-CH2 (MeteoSwiss) and ECMWF IFS via [Open-Meteo](https://open-meteo.com) (CC BY 4.0), plus GeoSphere's 1 km NWP directly from the GeoSphere Data Hub. `?mode=backfill&days=N` loads day-1/day-2 forecasts from Open-Meteo's previous-runs API; `backfill-obs` loads past observations. A daily job thins forecasts older than 21 days to lead times 3/6/12/24/48 h.
+
+SQL functions `forecast_skill(days, station)` and `forecast_series(station, hours, lead_min, lead_max)` power the "Forecast check" panel: error, bias, direction error and a ≥4 Bft threat score per model and lead time, plus a chart of measured vs. forecast wind.

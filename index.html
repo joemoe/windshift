@@ -120,6 +120,17 @@
   .boat .note{margin-top:3px}
   .legend .seg{margin-top:4px} .legend .seg button{padding:2px 7px;font-size:10px}
   .legend .sysl span{margin-right:7px}
+  .fct{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+  .fct th{font-weight:500;color:var(--mute);text-align:right;padding:2px 3px;font-size:10px}
+  .fct th:first-child,.fct td:first-child{text-align:left}
+  .fct td{padding:3px;text-align:right;font-family:'JetBrains Mono',monospace;border-top:1px solid var(--line);color:var(--ink)}
+  .fct td:first-child{font-family:Inter,sans-serif}
+  .fct td i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;background:var(--c)}
+  .fct tr.best td{color:var(--b1)}
+  .fct small{color:var(--mute)}
+  #fcChart svg{width:100%;height:150px;display:block;margin-top:6px}
+  .fcl{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10px;color:var(--mute);margin-top:4px}
+  .fcl span{display:inline-flex;align-items:center;gap:4px} .fcl i{width:10px;height:3px;border-radius:2px;display:inline-block}
   details.about{font-size:11px;color:var(--mute);line-height:1.5}
   details.about summary{cursor:pointer}
   details.about a{color:var(--b0)}
@@ -181,6 +192,16 @@
         <div class="note" id="boatHint"></div>
         <div id="boats"></div>
       </div>
+      <details class="card catchc" id="fcCard"><summary><h2><span data-i18n="fcTitle"></span><span class="r" data-i18n="fcHint"></span></h2></summary>
+        <div class="row" style="margin-top:6px">
+          <select id="fcStation" class="btn" style="flex:1" aria-label="Station"></select>
+          <select id="fcDays" class="btn" aria-label="Period"><option value="7">7 d</option><option value="14">14 d</option><option value="30" selected>30 d</option></select>
+          <select id="fcLead" class="btn" aria-label="Lead time"><option value="0-6h">0–6 h</option><option value="6-12h">6–12 h</option><option value="12-24h">12–24 h</option><option value="24-48h" selected>24–48 h</option></select>
+        </div>
+        <div id="fcTable" class="note"></div>
+        <div id="fcChart"></div>
+        <div class="note" id="fcNote"></div>
+      </details>
       <details class="about"><summary data-i18n="about"></summary><div id="aboutText"></div></details>
     </aside>
   </main>
@@ -200,7 +221,11 @@ const I18N = {
   noteWait:'Live: waiting for station data …', from:'from', upto:'up to',
   addBoat:'+ Boat', boatName:n=>`Boat ${n}`, stbS:'Stbd', portS:'Port', stbd:'starboard tack', port:'port tack', play:'Sail / pause', restart:'Restart from start point', remove:'Remove',
   boatHint:'Add a boat and tap the lake. Boats keep a fixed angle to the wind – drag them to move, change angle or tack any time.', limit:'2 turns',
-  colorBy:'Colour', bySpeed:'speed', bySys:'wind system', catchment:'Catchment stations', catchHint:'feed the model', showCatch:'⤢ Catchment', showLake:'⤡ Lake',
+  colorBy:'Colour', bySpeed:'speed', bySys:'wind system',
+  fcTitle:'Forecast check', fcHint:'models vs. measured', fcAll:'All lake stations', fcModel:'Model', fcN:'n', fcMae:'Error', fcBias:'Bias', fcDir:'Dir.', fcCsi:'≥4 Bft',
+  fcLoading:'Loading forecast statistics …', fcNone:'No matching forecasts yet for this selection.',
+  fcNote:'Error = mean absolute difference of the 10-min mean wind at full hours; bias > 0 = model too strong; Dir. = mean direction error (only ≥ 2 m/s); ≥4 Bft = threat score for 4 Bft and more (hits ÷ hits+misses+false alarms). Chart: measured (white) and each model’s forecast issued with the selected lead time; right of the line is the future.',
+  fcChartNote:'Chart needs one station – pick one above.', catchment:'Catchment stations', catchHint:'feed the model', showCatch:'⤢ Catchment', showLake:'⤡ Lake',
   twa:{45:'45° close-hauled',60:'60° close reach',90:'90° beam reach',120:'120° broad reach',160:'160° running'},
   placing:'Tap on the lake to put the boat in the water.', notWater:'That is not water – try again.',
   boatInfo:(turn,tt,full,stop)=>`Heading turned <b>${turn}°</b> with untouched sails · ${tt}${full?' · <b class="ok">full circle!</b>':''}${stop?' · '+stop:''}`,
@@ -236,7 +261,11 @@ const I18N = {
   noteWait:'Live: warte auf Stationsdaten …', from:'aus', upto:'bis',
   addBoat:'+ Boot', boatName:n=>`Boot ${n}`, stbS:'Stb', portS:'Bb', stbd:'Steuerbordbug', port:'Backbordbug', play:'Segeln / Pause', restart:'Neu ab Startpunkt', remove:'Entfernen',
   boatHint:'Boot hinzufügen und auf den See tippen. Boote halten einen festen Winkel zum Wind – zum Versetzen ziehen, Winkel und Bug jederzeit ändern.', limit:'2 Runden',
-  colorBy:'Farbe', bySpeed:'Stärke', bySys:'Windsystem', catchment:'Einzugsgebiet', catchHint:'fließen ins Modell ein', showCatch:'⤢ Einzugsgebiet', showLake:'⤡ See',
+  colorBy:'Farbe', bySpeed:'Stärke', bySys:'Windsystem',
+  fcTitle:'Prognose-Check', fcHint:'Modelle vs. Messung', fcAll:'Alle Seestationen', fcModel:'Modell', fcN:'n', fcMae:'Fehler', fcBias:'Bias', fcDir:'Richt.', fcCsi:'≥4 Bft',
+  fcLoading:'Lade Prognose-Statistik …', fcNone:'Für diese Auswahl gibt es noch keine passenden Prognosen.',
+  fcNote:'Fehler = mittlere absolute Abweichung des 10-Min-Mittelwinds zur vollen Stunde; Bias > 0 = Modell zu stark; Richt. = mittlerer Richtungsfehler (nur ab 2 m/s); ≥4 Bft = Trefferquote für 4 Bft und mehr (Treffer ÷ Treffer+Verfehlt+Fehlalarm). Grafik: gemessen (weiß) und die Prognose jedes Modells mit der gewählten Vorlaufzeit; rechts der Linie ist Zukunft.',
+  fcChartNote:'Die Grafik braucht eine Station – oben eine auswählen.', catchment:'Einzugsgebiet', catchHint:'fließen ins Modell ein', showCatch:'⤢ Einzugsgebiet', showLake:'⤡ See',
   twa:{45:'45° hoch am Wind',60:'60° am Wind',90:'90° halber Wind',120:'120° raumschots',160:'160° vor dem Wind'},
   placing:'Tippe auf den See, um das Boot ins Wasser zu setzen.', notWater:'Das ist kein Wasser – nochmal versuchen.',
   boatInfo:(turn,tt,full,stop)=>`Kurs gedreht um <b>${turn}°</b> ohne Segel anzufassen · ${tt}${full?' · <b class="ok">einmal im Kreis!</b>':''}${stop?' · '+stop:''}`,
@@ -694,6 +723,61 @@ function syncPanel(){
 }
 function update(){ syncPanel(); renderSystems(); renderLegend(); Object.values(MARKERS).forEach(mk=>mk.setOpacity(MODE==='sim'?0.35:1)); windRegrid(); }
 
+// =================== forecast check ===================
+const FC_MODELS = {
+  icon_ch1:['ICON-CH1 · MeteoSwiss 1 km','#ef5b4c'], geosphere_1km:['GeoSphere · 1 km','#4fc3a1'], icon_d2:['ICON-D2 · DWD 2 km','#f2c94c'],
+  icon_ch2:['ICON-CH2 · MeteoSwiss 2 km','#ff9b85'], icon_eu:['ICON-EU · DWD 7 km','#b08d57'], ecmwf_ifs:['ECMWF IFS · 9 km','#9fb4ff'] };
+const FC_LAKE = ['lindau','bregenz','rohrspitz','altenrhein','fn','kn'];
+const FC_LEADS = {'0-6h':[0,6], '6-12h':[6,12], '12-24h':[12,24], '24-48h':[22,30]};
+const rpc = (fn, body) => fetch(`${DB_URL}/rest/v1/rpc/${fn}`, {method:'POST', headers:{apikey:DB_KEY, Authorization:'Bearer '+DB_KEY, 'Content-Type':'application/json'}, body:JSON.stringify(body)})
+  .then(r=>{ if(!r.ok) throw new Error('DB '+r.status); return r.json(); });
+let FC_LOADED=false;
+function fcOptions(){
+  const sel=document.getElementById('fcStation'), v=sel.value||'_lake', all=[...STATIONS,...CATCH];
+  sel.innerHTML = `<option value="_lake">${T().fcAll}</option>` + all.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  sel.value=v;
+}
+async function fcLoad(){
+  const st=document.getElementById('fcStation').value, days=+document.getElementById('fcDays').value, lead=document.getElementById('fcLead').value;
+  const tb=document.getElementById('fcTable'); tb.textContent=T().fcLoading; document.getElementById('fcNote').textContent=T().fcNote;
+  try{
+    const rows = await rpc('forecast_skill', {p_days:days, p_station: st==='_lake'?null:st});
+    const use = rows.filter(r=>r.lead_bucket===lead && (st!=='_lake' || FC_LAKE.includes(r.station_id)));
+    const agg={};
+    for(const r of use){ const a=agg[r.model]||(agg[r.model]={n:0,mae:0,bias:0,rm:0,dir:0,dn:0,h:0,m:0,f:0});
+      a.n+=r.n; a.mae+=r.mae*r.n; a.bias+=r.bias*r.n; a.rm+=r.rmse*r.rmse*r.n; if(r.dir_mae!=null){ a.dir+=r.dir_mae*r.n; a.dn+=r.n; } a.h+=r.strong_hits; a.m+=r.strong_misses; a.f+=r.strong_false; }
+    const list=Object.entries(agg).map(([m,a])=>({m, n:a.n, mae:a.mae/a.n, bias:a.bias/a.n, dir:a.dn?a.dir/a.dn:null, csi:(a.h+a.m+a.f)?a.h/(a.h+a.m+a.f):null, ev:a.h+a.m})).sort((x,y)=>x.mae-y.mae);
+    if(!list.length){ tb.textContent=T().fcNone; }
+    else tb.innerHTML = `<table class="fct"><tr><th>${T().fcModel}</th><th>${T().fcN}</th><th>${T().fcMae}</th><th>${T().fcBias}</th><th>${T().fcDir}</th><th>${T().fcCsi}</th></tr>` +
+      list.map((r,i)=>`<tr class="${i===0?'best':''}"><td><i style="--c:${(FC_MODELS[r.m]||[r.m,'#888'])[1]}"></i>${(FC_MODELS[r.m]||[r.m])[0]}</td><td>${r.n}</td><td>${fmt(r.mae)}</td><td>${r.bias>=0?'+':''}${(r.bias*CONV[UNIT]).toFixed(1)}</td><td>${r.dir==null?'–':Math.round(r.dir)+'°'}</td><td>${r.csi==null?'–':Math.round(r.csi*100)+'%'}<small>${r.ev?` /${r.ev}`:''}</small></td></tr>`).join('') +
+      `</table><div style="margin-top:3px">${T().fcMae}/${T().fcBias}: ${ULABEL[UNIT]}</div>`;
+    await fcChart(st==='_lake' ? 'rohrspitz' : st, lead);
+  }catch(e){ tb.innerHTML=`<span class="err">${e.message}</span>`; }
+}
+async function fcChart(st, lead){
+  const box=document.getElementById('fcChart'), [lo,hi]=FC_LEADS[lead];
+  const rows = await rpc('forecast_series', {p_station:st, p_hours:72, p_lead_min:lo, p_lead_max:hi});
+  const by={}; rows.forEach(r=>(by[r.kind]||(by[r.kind]=[])).push({t:Date.parse(r.ts), ff:r.ff}));
+  const t0=Date.now()-72*3600e3, t1=Date.now()+36*3600e3, W2=360, H2=150, pad=18;
+  const max=Math.max(4, ...rows.map(r=>r.ff||0));
+  const X=t=>pad+((t-t0)/(t1-t0))*(W2-pad-4), Y=v=>H2-14-(v/max)*(H2-24);
+  const line=(arr,c,w,o)=>`<path d="${arr.filter(p=>p.ff!=null&&p.t>=t0&&p.t<=t1).sort((a,b)=>a.t-b.t).map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+' '+Y(p.ff).toFixed(1)).join('')}" fill="none" stroke="${c}" stroke-width="${w}" opacity="${o}" stroke-linejoin="round"/>`;
+  let svg=`<svg viewBox="0 0 ${W2} ${H2}" preserveAspectRatio="none">`;
+  for(let k=0;k<=max;k+=Math.max(1,Math.round(max/4))){ svg+=`<line x1="${pad}" x2="${W2}" y1="${Y(k)}" y2="${Y(k)}" stroke="var(--line)"/><text x="0" y="${Y(k)+3}" font-size="8" fill="var(--mute)">${fmt(k)}</text>`; }
+  for(let d=new Date(new Date(t0).setUTCHours(0,0,0,0)).getTime()+864e5; d<t1; d+=864e5){ svg+=`<line x1="${X(d)}" x2="${X(d)}" y1="4" y2="${H2-14}" stroke="var(--line)"/><text x="${X(d)+2}" y="${H2-3}" font-size="8" fill="var(--mute)">${new Date(d).toLocaleDateString(T().locale,{weekday:'short',day:'numeric'})}</text>`; }
+  for(const [m,[,c]] of Object.entries(FC_MODELS)) if(by[m]) svg+=line(by[m],c,1.4,0.9);
+  if(by.obs) svg+=line(by.obs,'#ffffff',2.4,1);
+  svg+=`<line x1="${X(Date.now())}" x2="${X(Date.now())}" y1="4" y2="${H2-14}" stroke="var(--b2)" stroke-dasharray="3 3"/></svg>`;
+  const name=[...STATIONS,...CATCH].find(s=>s.id===st)?.name||st;
+  box.innerHTML = `<div class="note" style="margin-top:8px"><b>${name}</b> · ${ULABEL[UNIT]} · ${lead}</div>` + svg +
+    `<div class="fcl"><span><i style="background:#fff"></i>${LANG==='de'?'gemessen':'measured'}</span>${Object.entries(FC_MODELS).filter(([m])=>by[m]).map(([m,[l,c]])=>`<span><i style="background:${c}"></i>${l.split(' · ')[0]}</span>`).join('')}</div>`;
+}
+function fcInit(){
+  fcOptions();
+  ['fcStation','fcDays','fcLead'].forEach(id=>document.getElementById(id).onchange=fcLoad);
+  document.getElementById('fcCard').addEventListener('toggle', e=>{ if(e.target.open && !FC_LOADED){ FC_LOADED=true; fcLoad(); } });
+}
+
 // =================== static texts & language ===================
 function applyLang(){
   document.documentElement.lang = LANG;
@@ -704,6 +788,7 @@ function applyLang(){
   document.getElementById('boatAdd').textContent=T().addBoat;
   renderBoats();
   document.getElementById('aboutText').innerHTML=T().aboutText;
+  fcOptions(); if(FC_LOADED) fcLoad();
   syncAnimBtn(); render();
 }
 function syncAnimBtn(){ const b=document.getElementById('animToggle'); b.textContent = W.on ? T().animOn : T().animOff; b.classList.toggle('on', W.on); }
@@ -877,12 +962,12 @@ function render(){
   if(window.L){ renderMap(); windSetup(); if(!PANEL){ buildPanel(); PANEL=true; } syncPanel(); renderSystems(); windRegrid(); }
 }
 document.querySelectorAll('#units button').forEach(b=>{ b.onclick=()=>{ UNIT=b.dataset.u; try{localStorage.setItem('wind-unit',UNIT)}catch(e){}
-  document.querySelectorAll('#units button').forEach(x=>x.classList.toggle('on',x===b)); render(); }; b.classList.toggle('on', b.dataset.u===UNIT); });
+  document.querySelectorAll('#units button').forEach(x=>x.classList.toggle('on',x===b)); render(); if(FC_LOADED) fcLoad(); }; b.classList.toggle('on', b.dataset.u===UNIT); });
 document.querySelectorAll('#lang button').forEach(b=> b.onclick=()=>{ LANG=b.dataset.l; try{localStorage.setItem('wind-lang',LANG)}catch(e){} applyLang(); });
 document.getElementById('animToggle').onclick=()=>{ W.on=!W.on; syncAnimBtn(); if(W.on) windStart(); else { cancelAnimationFrame(W.raf); W.raf=null; W.ctx&&W.ctx.clearRect(0,0,W.cv.width,W.cv.height); } };
 document.getElementById('reload').onclick = loadAll;
 document.getElementById('boatAdd').onclick=()=>{ PLACING=true; if(MAP) MAP.getContainer().style.cursor='crosshair'; boatHint(T().placing); };
-applyLang(); loadAll(); setInterval(loadAll, 5*60e3);
+fcInit(); applyLang(); loadAll(); setInterval(loadAll, 5*60e3);
 </script>
 </body>
 </html>
