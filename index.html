@@ -749,7 +749,7 @@ async function fcLoad(){
     const list=Object.entries(agg).map(([m,a])=>({m, n:a.n, mae:a.mae/a.n, bias:a.bias/a.n, dir:a.dn?a.dir/a.dn:null, csi:(a.h+a.m+a.f)?a.h/(a.h+a.m+a.f):null, ev:a.h+a.m})).sort((x,y)=>x.mae-y.mae);
     if(!list.length){ tb.textContent=T().fcNone; }
     else tb.innerHTML = `<table class="fct"><tr><th>${T().fcModel}</th><th>${T().fcN}</th><th>${T().fcMae}</th><th>${T().fcBias}</th><th>${T().fcDir}</th><th>${T().fcCsi}</th></tr>` +
-      list.map((r,i)=>`<tr class="${i===0?'best':''}"><td><i style="--c:${(FC_MODELS[r.m]||[r.m,'#888'])[1]}"></i>${(FC_MODELS[r.m]||[r.m])[0]}</td><td>${r.n}</td><td>${fmt(r.mae)}</td><td>${r.bias>=0?'+':''}${(r.bias*CONV[UNIT]).toFixed(1)}</td><td>${r.dir==null?'–':Math.round(r.dir)+'°'}</td><td>${r.csi==null?'–':Math.round(r.csi*100)+'%'}<small>${r.ev?` /${r.ev}`:''}</small></td></tr>`).join('') +
+      list.map((r,i)=>`<tr class="${i===0?'best':''}"><td><i style="--c:${(FC_MODELS[r.m]||[r.m,'#888'])[1]}"></i>${(FC_MODELS[r.m]||[r.m])[0]}</td><td>${r.n}</td><td>${(r.mae*CONV[UNIT]).toFixed(1)}</td><td>${r.bias>=0?'+':''}${(r.bias*CONV[UNIT]).toFixed(1)}</td><td>${r.dir==null?'–':Math.round(r.dir)+'°'}</td><td>${r.csi==null?'–':Math.round(r.csi*100)+'%'}<small>${r.ev?` /${r.ev}`:''}</small></td></tr>`).join('') +
       `</table><div style="margin-top:3px">${T().fcMae}/${T().fcBias}: ${ULABEL[UNIT]}</div>`;
     await fcChart(st==='_lake' ? 'rohrspitz' : st, lead);
   }catch(e){ tb.innerHTML=`<span class="err">${e.message}</span>`; }
