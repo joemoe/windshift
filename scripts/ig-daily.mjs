@@ -7,7 +7,7 @@ const FN = 'https://lfiadqrbacphpoeihfpg.supabase.co/functions/v1/ig-post';
 const DRY = process.env.DRY === 'true', FORCE = process.env.FORCE === 'true';
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
+const page = await browser.newPage({ viewport: { width: 1500, height: 1000 }, timezoneId: 'Europe/Vienna', locale: 'de-AT' });
 await page.addInitScript(() => { localStorage.setItem('wind-lang', 'de'); localStorage.setItem('wind-unit', 'kn'); localStorage.setItem('wind-color', 'sys'); });
 page.on('pageerror', e => console.log('pageerror', e.message));
 await page.goto(SITE + '?ig=' + Date.now(), { waitUntil: 'networkidle' });
