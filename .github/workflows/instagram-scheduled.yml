@@ -1,0 +1,16 @@
+name: Instagram scheduled posts
+on:
+  schedule:
+    - cron: '7,37 * * * *'   # every 30 min; posts entries of posts/schedule.txt once when due
+  workflow_dispatch:
+permissions: { contents: read, id-token: write }
+concurrency: instagram
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/ig-scheduled.mjs

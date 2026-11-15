@@ -16,7 +16,7 @@ if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
     if (!r.ok) throw new Error('upload failed: ' + JSON.stringify(r)); urls.push(r.image_url); console.log('uploaded', f);
   }
   if (DRY) { console.log(urls); process.exit(0); }
-  res = await fetch(`${FN}?kind=carousel`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ urls, caption }) });
+  res = await fetch(`${FN}?kind=carousel`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ urls, caption, lock: `manual-${name}` }) });
 } else {
   const q = new URLSearchParams({ caption, kind: 'manual' }); if (DRY) q.set('dry', '1');
   res = await fetch(`${FN}?${q}`, { method: 'POST', headers: { ...auth, 'Content-Type': 'image/jpeg' }, body: fs.readFileSync(`${dir}.jpg`) });
