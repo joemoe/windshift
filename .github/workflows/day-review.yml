@@ -1,0 +1,28 @@
+name: Evening review (good sailing day)
+on:
+  schedule:
+    - cron: '10 19 * * *'   # 20:10 Vienna (winter)
+  workflow_dispatch:
+    inputs:
+      day: { description: 'Day YYYY-MM-DD (default: today)', required: false }
+      dry: { description: 'Dry run (render + upload only)', type: boolean, default: true }
+      force: { description: 'Ignore once-per-day lock', type: boolean, default: false }
+permissions: { contents: read, id-token: write }
+concurrency: instagram
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm i --no-save playwright@1 && npx playwright install --with-deps chromium
+      - run: node scripts/day-review.mjs
+        env:
+          DAY: ${{ inputs.day }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry || 'false' }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: review, path: out/ }
