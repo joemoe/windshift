@@ -1,0 +1,18 @@
+name: Instagram manual post
+on:
+  workflow_dispatch:
+    inputs:
+      name: { description: 'File stem in posts/manual/ (e.g. 2026-11-15-rueckblick)', required: true }
+      dry: { description: 'Dry run', type: boolean, default: true }
+permissions: { contents: read, id-token: write }
+concurrency: instagram
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/ig-manual.mjs
+        env: { POST_NAME: '${{ inputs.name }}', DRY: '${{ inputs.dry }}' }
