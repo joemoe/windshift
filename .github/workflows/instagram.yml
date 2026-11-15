@@ -1,0 +1,34 @@
+name: Instagram daily post
+on:
+  schedule:
+    - cron: '50 6 * * *'   # 07:50 Vienna (winter) → post lands ~08:00; GitHub may add a few minutes delay
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'Dry run (render + upload only, do not post)'
+        type: boolean
+        default: true
+      force:
+        description: 'Post even if already posted today / data stale'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  id-token: write
+concurrency: instagram
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm i --no-save playwright@1 && npx playwright install --with-deps chromium
+      - run: node scripts/ig-daily.mjs
+        env:
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry || 'false' }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: post, path: out/ }
