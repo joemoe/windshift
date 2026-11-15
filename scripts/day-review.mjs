@@ -18,9 +18,9 @@ const hh = t => new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna', ho
 
 // ---- observations of the day ----
 const rows = [];
-for (let off2 = 0; ; off2 += 5000) {
-  const r = await fetch(`${DB}/rest/v1/observations?select=station_id,ts,dd,ff,fx&ts=gte.${new Date(t0 - 3600e3).toISOString()}&ts=lt.${new Date(t1).toISOString()}&order=ts.asc&limit=5000&offset=${off2}`, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }).then(r => r.json());
-  rows.push(...r); if (r.length < 5000) break;
+for (let off2 = 0; ; off2 += 1000) {
+  const r = await fetch(`${DB}/rest/v1/observations?select=station_id,ts,dd,ff,fx&ts=gte.${new Date(t0 - 3600e3).toISOString()}&ts=lt.${new Date(t1).toISOString()}&order=ts.asc,station_id.asc&limit=1000&offset=${off2}`, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }).then(r => r.json());
+  rows.push(...r); if (r.length < 1000) break;
 }
 console.log(DAY, 'rows', rows.length);
 
