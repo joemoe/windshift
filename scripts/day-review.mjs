@@ -55,7 +55,16 @@ function detect() {
   }
   return best;
 }
-const win = detect();
+// optional manual window (e.g. for a reported trip): WIN_STATION, WIN_FROM, WIN_TO (HH:MM local)
+function manualWin() {
+  const id = process.env.WIN_STATION, f = process.env.WIN_FROM, t = process.env.WIN_TO; if (!id || !f || !t) return null;
+  const at = s => { const [h, m] = s.split(':').map(Number); return t0 + (h * 60 + m) * 60e3; };
+  const start = at(f), end = at(t), w = rows.filter(r => r.station_id === id && r.ff != null && r.dd != null).map(r => ({ t: Date.parse(r.ts), ff: r.ff, dd: r.dd, fx: r.fx })).filter(x => x.t >= start && x.t <= end);
+  const m = w.reduce((s, x) => s + x.ff, 0) / w.length, gx = Math.max(...w.map(x => x.fx || 0));
+  const S = w.reduce((s, x) => s + Math.sin(x.dd * Math.PI / 180), 0) / w.length, C = w.reduce((s, x) => s + Math.cos(x.dd * Math.PI / 180), 0) / w.length;
+  return { id, start, end, hours: (end - start) / 3600e3, mean: m, gust: gx, dir: (Math.atan2(S, C) * 180 / Math.PI + 360) % 360, dstd: Math.sqrt(-2 * Math.log(Math.min(0.999999, Math.hypot(S, C)))) * 180 / Math.PI, manual: true };
+}
+const win = manualWin() || detect();
 console.log('window', win && { ...win, start: hh(win.start), end: hh(win.end) });
 
 // ---- page: replay fit + render ----
@@ -154,7 +163,11 @@ const fl = await fetch(`${FN}?kind=fitlog`, { method: 'POST', headers: { ...auth
 console.log('fitlog', fl.status, (await fl.text()).slice(0, 200));
 
 if (!win) { console.log('No good window today.'); process.exit(0); }
-const imgs = [out.s1, out.s2].map(b => Buffer.from(b, 'base64'));
+let imgs = [out.s1, out.s2].map(b => Buffer.from(b, 'base64'));
+const EXTRA = process.env.EXTRA_DIR;
+if (EXTRA) { const fl = fs.readdirSync(EXTRA).filter(f => /\.jpe?g$/i.test(f)).sort(); const rd = f => fs.readFileSync(`${EXTRA}/${f}`);
+  imgs = [...fl.filter(f => f.startsWith('a')).map(rd), ...imgs, ...fl.filter(f => f.startsWith('z')).map(rd)]; }
+if (process.env.CAPTION_FILE) out.caption = fs.readFileSync(process.env.CAPTION_FILE, 'utf8').trim();
 imgs.forEach((b, i) => fs.writeFileSync(`out/slide${i + 1}.jpg`, b)); fs.writeFileSync('out/caption.txt', out.caption);
 console.log(out.caption);
 const urls = [];

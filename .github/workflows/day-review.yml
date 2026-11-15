@@ -7,6 +7,10 @@ on:
       day: { description: 'Day YYYY-MM-DD (default: today)', required: false }
       dry: { description: 'Dry run (render + upload only)', type: boolean, default: true }
       force: { description: 'Ignore once-per-day lock', type: boolean, default: false }
+      station: { description: 'Manual window: station id (lindau/bregenz/rohrspitz/altenrhein)', required: false }
+      from: { description: 'Manual window start HH:MM', required: false }
+      to: { description: 'Manual window end HH:MM', required: false }
+      extra: { description: 'Repo dir with extra slides (a*.jpg before, z*.jpg after) + caption.txt', required: false }
 permissions: { contents: read, id-token: write }
 concurrency: instagram
 jobs:
@@ -23,6 +27,11 @@ jobs:
           DAY: ${{ inputs.day }}
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry || 'false' }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+          WIN_STATION: ${{ inputs.station }}
+          WIN_FROM: ${{ inputs.from }}
+          WIN_TO: ${{ inputs.to }}
+          EXTRA_DIR: ${{ inputs.extra }}
+          CAPTION_FILE: ${{ inputs.extra && format('{0}/caption.txt', inputs.extra) || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: review, path: out/ }
