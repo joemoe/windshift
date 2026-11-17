@@ -1,3 +1,6 @@
 # Scheduled manual posts: <local time Europe/Vienna YYYY-MM-DDTHH:MM> <name in posts/manual/>
 # Posted once (lock "manual-<name>"), at the first check after the time, up to 3 h late.
 2026-11-18T18:00 2026-11-18-deepdive
+2026-11-22T20:00 2026-11-22-foehn
+2026-11-25T18:00 2026-11-25-sturmwarnung
+2026-11-29T20:00 2026-11-29-pfaenderwind
