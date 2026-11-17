@@ -43,7 +43,10 @@ const out = await page.evaluate(async () => {
     '',
     '#bodensee #segeln #wind #windsurfen #kitesurfen #bregenz #lindau #lakeconstance #vorarlberg #windshift',
   ].join('\n');
-  return { jpg, caption, stale, lastT };
+  // winter rule (until 15 March): only post when something is going on
+  const maxFF = Math.max(0, ...rows.map(r => r.ff)), strong = SYSTEMS.filter(q => q.id !== 'thermal' && Math.abs(S[q.id] || 0) >= 0.4).map(q => q.id);
+  const interesting = maxFF >= 8 / 1.94384 || strong.length > 0;
+  return { jpg, caption, stale, lastT, interesting, maxKn: Math.round(maxFF * 1.94384), strong };
 });
 await browser.close();
 
@@ -52,6 +55,9 @@ const img = Buffer.from(out.jpg, 'base64');
 fs.writeFileSync('out/post.jpg', img); fs.writeFileSync('out/caption.txt', out.caption);
 console.log(out.caption, '\n\nstale:', out.stale, 'bytes:', img.length);
 if (out.stale && !FORCE) { console.log('Data stale – not posting.'); process.exit(DRY ? 0 : 1); }
+const WINTER = new Date() < new Date('2027-03-15T00:00:00+01:00');
+console.log('interesting:', out.interesting, 'max kn:', out.maxKn, 'strong systems:', out.strong.join(',') || '-');
+if (WINTER && !out.interesting && !FORCE) { console.log('Winter mode: quiet day – not posting.'); process.exit(0); }
 
 // GitHub OIDC token proves the request comes from this repo's workflow
 const oidc = await fetch(`${process.env.ACTIONS_ID_TOKEN_REQUEST_URL}&audience=windshift-ig`, { headers: { Authorization: `bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` } }).then(r => r.json());
