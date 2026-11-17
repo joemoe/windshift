@@ -1,7 +1,6 @@
 name: Instagram scheduled posts
 on:
-  schedule:
-    - cron: '7,37 * * * *'   # every 30 min; posts entries of posts/schedule.txt once when due
+  # triggered by Supabase pg_cron → functions/v1/gh-dispatch (Vienna time, DST-proof)
   workflow_dispatch:
 permissions: { contents: read, id-token: write }
 concurrency: instagram

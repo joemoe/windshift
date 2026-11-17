@@ -1,7 +1,6 @@
 name: Instagram daily post
 on:
-  schedule:
-    - cron: '50 6 * * *'   # 07:50 Vienna (winter) → post lands ~08:00; GitHub may add a few minutes delay
+  # triggered by Supabase pg_cron → functions/v1/gh-dispatch (Vienna time, DST-proof)
   workflow_dispatch:
     inputs:
       dry:

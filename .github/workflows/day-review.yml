@@ -1,7 +1,6 @@
 name: Evening review (good sailing day)
 on:
-  schedule:
-    - cron: '10 19 * * *'   # 20:10 Vienna (winter)
+  # triggered by Supabase pg_cron → functions/v1/gh-dispatch (Vienna time, DST-proof)
   workflow_dispatch:
     inputs:
       day: { description: 'Day YYYY-MM-DD (default: today)', required: false }
