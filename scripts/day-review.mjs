@@ -49,7 +49,7 @@ function detect() {
       const S = w.reduce((s, x) => s + Math.sin(x.dd * Math.PI / 180), 0) / w.length, C = w.reduce((s, x) => s + Math.cos(x.dd * Math.PI / 180), 0) / w.length;
       const R = Math.min(0.999999, Math.hypot(S, C)), dstd = Math.sqrt(-2 * Math.log(R)) * 180 / Math.PI;
       const gx = Math.max(...w.map(x => x.fx || 0)), rn = rainIn(end - 120 * 60e3, end);
-      if (m * KN >= 8 && m * KN <= 16 && mn * KN >= 5.5 && gx * KN <= 22 && sd / m <= 0.3 && dstd <= 25 && rn.mm <= 1.0 && rn.wet <= 0.25) ok.push(end);
+      if (m * KN >= 8 && m * KN <= 16 && mn * KN >= 5.5 && gx * KN <= 22 && sd / m <= 0.3 && dstd <= 25 && rn.mm <= 0.5 && rn.wet <= 0.15) ok.push(end);
     }
     if (!ok.length) continue;
     // merge consecutive window ends into periods
@@ -76,7 +76,9 @@ function manualWin() {
   const S = w.reduce((s, x) => s + Math.sin(x.dd * Math.PI / 180), 0) / w.length, C = w.reduce((s, x) => s + Math.cos(x.dd * Math.PI / 180), 0) / w.length;
   return { id, start, end, hours: (end - start) / 3600e3, mean: m, gust: gx, dir: (Math.atan2(S, C) * 180 / Math.PI + 360) % 360, dstd: Math.sqrt(-2 * Math.log(Math.min(0.999999, Math.hypot(S, C)))) * 180 / Math.PI, manual: true };
 }
-const win = manualWin() || detect();
+const dayRain = rainIn(t0 + 8 * 3600e3, t0 + 18 * 3600e3).mm;
+console.log('daytime rain mm', dayRain.toFixed(1));
+const win = manualWin() || (dayRain > 3 ? (console.log('Rainy day (> 3 mm 8–18 h) – no good-day post.'), null) : detect());
 console.log('window', win && { ...win, start: hh(win.start), end: hh(win.end) });
 
 // ---- page: replay fit + render ----
