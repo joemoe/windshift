@@ -24,7 +24,18 @@ for (let off2 = 0; ; off2 += 1000) {
 }
 console.log(DAY, 'rows', rows.length);
 
+// ---- rain (GeoSphere TAWES, RR = mm per 10 min) at Bregenz + Rohrspitz ----
+const RAIN = {};   // ms timestamp -> mm (max of the two stations)
+try {
+  const iso = t => new Date(t).toISOString().slice(0, 16);
+  const r = await fetch(`https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min?parameters=RR&station_ids=11101,11299&start=${iso(t0)}&end=${iso(t1)}`).then(r => r.json());
+  for (const f of r.features || []) (r.timestamps || []).forEach((ts, i) => { const v = f.properties.parameters.RR.data[i]; if (v != null) { const k = Date.parse(ts); RAIN[k] = Math.max(RAIN[k] || 0, v); } });
+  console.log('rain slots', Object.keys(RAIN).length, 'day total mm', Object.values(RAIN).reduce((a, b) => a + b, 0).toFixed(1));
+} catch (e) { console.log('rain fetch failed', e.message); }
+const rainIn = (a, b) => { const v = Object.entries(RAIN).filter(([k]) => +k >= a && +k <= b).map(([, v]) => v); return { mm: v.reduce((x, y) => x + y, 0), wet: v.length ? v.filter(x => x > 0).length / v.length : 0 }; };
+
 // ---- good-window detection on raw lake observations ----
+// good = 8–16 kn mean over >= 2 h, steady (speed + direction), gusts <= 22 kn, mostly dry, daytime
 function detect() {
   let best = null;
   for (const id of LAKE) {
@@ -37,7 +48,8 @@ function detect() {
       const sd = Math.sqrt(w.reduce((s, x) => s + (x.ff - m) ** 2, 0) / (w.length - 1));
       const S = w.reduce((s, x) => s + Math.sin(x.dd * Math.PI / 180), 0) / w.length, C = w.reduce((s, x) => s + Math.cos(x.dd * Math.PI / 180), 0) / w.length;
       const R = Math.min(0.999999, Math.hypot(S, C)), dstd = Math.sqrt(-2 * Math.log(R)) * 180 / Math.PI;
-      if (m * KN >= 8 && m * KN <= 22 && mn * KN >= 5.5 && sd / m <= 0.3 && dstd <= 25) ok.push(end);
+      const gx = Math.max(...w.map(x => x.fx || 0)), rn = rainIn(end - 120 * 60e3, end);
+      if (m * KN >= 8 && m * KN <= 16 && mn * KN >= 5.5 && gx * KN <= 22 && sd / m <= 0.3 && dstd <= 25 && rn.mm <= 1.0 && rn.wet <= 0.25) ok.push(end);
     }
     if (!ok.length) continue;
     // merge consecutive window ends into periods
@@ -49,7 +61,7 @@ function detect() {
       const m = w.reduce((s, x) => s + x.ff, 0) / w.length, gx = Math.max(...w.map(x => x.fx || 0));
       const S = w.reduce((s, x) => s + Math.sin(x.dd * Math.PI / 180), 0) / w.length, C = w.reduce((s, x) => s + Math.cos(x.dd * Math.PI / 180), 0) / w.length;
       const dir = (Math.atan2(S, C) * 180 / Math.PI + 360) % 360, dstd = Math.sqrt(-2 * Math.log(Math.min(0.999999, Math.hypot(S, C)))) * 180 / Math.PI;
-      const cand = { id, start, end: e1, hours: (e1 - start) / 3600e3, mean: m, gust: gx, dir, dstd };
+      const cand = { id, start, end: e1, hours: (e1 - start) / 3600e3, mean: m, gust: gx, dir, dstd, rain: rainIn(start, e1).mm };
       if (!best || cand.hours * cand.mean > best.hours * best.mean) best = cand;
     }
   }
@@ -142,7 +154,7 @@ const out = await page.evaluate(async ({ rows, t0, t1, win, DAY }) => {
   const dom = act[0] ? Math.abs(avg[act[0].id]) / act.reduce((s, q) => s + Math.abs(avg[q.id]), 0) : 0;
   const caption = [
     `⛵ Guter Segeltag: ${st.name}, ${dstr}, ${hm(win.start)}–${hm(win.end)}`, '',
-    `Ø ${k(win.mean)} kn aus ${dirName(win.dir)}, Böen bis ${k(win.gust)} kn – und die Richtung blieb auf ±${Math.round(win.dstd)}° stabil.`, '',
+    `Ø ${k(win.mean)} kn aus ${dirName(win.dir)}, Böen bis ${k(win.gust)} kn – die Richtung blieb auf ±${Math.round(win.dstd)}° stabil` + (win.rain != null && win.rain < 0.2 ? ', und es blieb trocken.' : '.'), '',
     `Warum? Unser Modell sagt: ${why.join('; ')}.` + (dom > 0.6 ? ' Ein System dominierte – darum so konstant.' : ''), '',
     'Warst du draußen? Hat es sich so angefühlt? Schreib es in die Kommentare 👇', '',
     'Kein Meteorologe am Werk: echte Messdaten + ein vereinfachtes Erklär-Modell. Live: joemoe.at/windshift (Link in Bio)', '',
